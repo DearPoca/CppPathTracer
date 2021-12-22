@@ -144,7 +144,7 @@ namespace poca_mus {
         vec.w /= len;
     }
 
-    inline float Frac(float n) { return std::max(0.0f, std::min(0.99999f, std::abs(n))); }
+    inline float Frac(float n) { return std::max(0.0f, std::min(0.9999999f, std::abs(n))); }
 
     inline float Dot(const float4 &vec1, const float4 &vec2) {
         return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;

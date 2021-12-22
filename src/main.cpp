@@ -53,15 +53,18 @@ int main(int argc, char **argv) {
     path_tracer->SetCamera(camera);
 
     {
-        Material *default_material = new Material;
+        std::vector<Material *> materials(5, new Material);
+        for (int i = 1; i < 5; ++i) {
+            materials[i]->Kd_ = poca_mus::CreateRandomFloat4();
+        }
 
         Object *earth = new Object();
-        earth->material_ = default_material;
+        earth->material_ = materials[0];
         scene->AddObject(earth);
 
         for (int i = -50; i < 50; i += 5) {
             Object *ball = new Object();
-            ball->material_ = default_material;
+            ball->material_ = materials[int(poca_mus::Random() * 5)];
             ball->center_ = float4(poca_mus::Random() * 100.f - 50.f, 1.f + poca_mus::Random() * 2.f, i);
             ball->radius_ = poca_mus::Random() * 2.f + 1.f;
             scene->AddObject(ball);
