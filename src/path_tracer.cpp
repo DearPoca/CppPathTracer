@@ -130,7 +130,7 @@ float4 PathTracer::SamplePixel(int x, int y) {
 
         ray.origin = payload.hit_pos;
         ray.dir = payload.bounce_dir;
-        ray.tmin = 0.f;
+        ray.tmin = 0.00002f;
         ray.tmax = 100000.f;
         payload.recursion_depth++;
     }

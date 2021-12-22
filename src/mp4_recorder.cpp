@@ -123,7 +123,7 @@ void Mp4Recoder::Process() {
     int line_size[1] = {input_fmt_bytes_ * width_};
     int64_t start_encode = av_gettime();
     wait_for_encoder_.Signal();
-    cv::Mat kernel = (cv::Mat_<float>(3, 3) << -0.16, -0.26, -0.16, -0.26, 2.68, -0.26, -0.16, -0.26, -0.16);
+    cv::Mat kernel = (cv::Mat_<float>(3, 3) << 0, -1, 0, -1, 5, -1, 0, -1, 0);
     while (true) {
         wait_for_data_.Wait();
         bool data_end = data_end_.load();
@@ -138,7 +138,7 @@ void Mp4Recoder::Process() {
         cv::Mat result;
         cv::filter2D(dst_bilateral, result, CV_8UC3, kernel);
 
-        ret = sws_scale(sws_context_, &result.data, line_size, 0, height_, dst_frame_->data, dst_frame_->linesize);
+        ret = sws_scale(sws_context_, &dst_bilateral.data, line_size, 0, height_, dst_frame_->data, dst_frame_->linesize);
 
         wait_for_encoder_.Signal();
 

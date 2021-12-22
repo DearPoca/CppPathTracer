@@ -36,7 +36,7 @@ bool Object::IntersectionTest(Ray &ray, ProceduralPrimitiveAttributes &attr) {
     return SphereIntersectionTest(*this, ray, attr);
 }
 
-Object::Object() : radius_(1000.f), center_(float4(0.f, -100.f, 0.f)) {
+Object::Object() : radius_(1000.f), center_(float4(0.f, -1000.f, 0.f)) {
     this->material_ = new Material;
     IntersectionTestPtr = SphereIntersectionTest;
 }

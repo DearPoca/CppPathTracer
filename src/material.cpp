@@ -4,7 +4,6 @@ void DiffuseProcess(Material &self, float4 &position, float4 &normal, float4 &ra
     Ray ray;
     ray.origin = position;
     float4 wi = -ray_direction;
-    payload.attenuation = self.Kd_ * poca_mus::Cosine(normal, wi);
 
     float x_1 = poca_mus::Random(), x_2 = poca_mus::Random();
     float z = pow(x_1, 1.0 / 2);
