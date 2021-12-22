@@ -1,8 +1,6 @@
 #include "material.h"
 
 void DiffuseProcess(Material &self, float4 &position, float4 &normal, float4 &ray_direction, RayPayload &payload) {
-    Ray ray;
-    ray.origin = position;
     float4 wi = -ray_direction;
 
     float x_1 = poca_mus::Random(), x_2 = poca_mus::Random();

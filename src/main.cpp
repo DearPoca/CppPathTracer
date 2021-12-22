@@ -53,8 +53,9 @@ int main(int argc, char **argv) {
     path_tracer->SetCamera(camera);
 
     {
-        std::vector<Material *> materials(10, new Material);
+        std::vector<Material *> materials = {new Material};
         for (int i = 1; i < 10; ++i) {
+            materials.push_back(new Material);
             materials[i]->Kd_ = poca_mus::CreateRandomFloat4();
         }
 
