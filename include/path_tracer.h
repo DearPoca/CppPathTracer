@@ -13,16 +13,16 @@ private:
     int width_;
     int height_;
 
-    float4 origin_;
-    float4 look_at_;
+    Float4 origin_;
+    Float4 look_at_;
     float view_fov_ = 20;        //视角
     float dist_to_focus_ = 10;   //焦距
     float lens_radius_ = 0.05f;  //孔半径
 
-    float4 u_, v_, w_;
-    float4 top_left_corner_;
-    float4 horizontal_;
-    float4 vertical_;
+    Float4 u_, v_, w_;
+    Float4 top_left_corner_;
+    Float4 horizontal_;
+    Float4 vertical_;
 
 public:
     MotionalCamera();
@@ -31,32 +31,17 @@ public:
     ~MotionalCamera();
 
     void Resize(int width, int height);
-    void SetOrigin(float4 ori);
+    void SetOrigin(Float4 ori);
     void SetOrigin(float x, float y, float z);
 
-    void SetLookAt(float4 lookAt);
+    void SetLookAt(Float4 lookAt);
     void SetLookAt(float x, float y, float z);
 
     void SetViewFov(float fov);
 
     void Updata();
 
-    Ray RayGen(int x, int y);
-};
-
-class Scene {
-private:
-    void MissShader(Ray& ray, RayPayload& payload);
-
-    std::vector<Object*> objs_;
-
-public:
-    Scene();
-    ~Scene();
-
-    void TraceRay(Ray& ray, RayPayload& payload);
-
-    void AddObject(Object* obj);
+    __device__ Ray RayGen(int x, int y, curandState* state);
 };
 
 class PathTracer {
@@ -64,27 +49,35 @@ private:
     int width_;
     int height_;
     uint8_t max_recursion_depth_ = MAX_RECURSION_DEPTH;
-    float4* render_target_;
+    Float4* render_target_gpu_handle_;
+    uint8_t* output_buffer_gpu_handle_;
 
     MotionalCamera* camera_;
-    Scene* scene_;
+    MotionalCamera* camera_gpu_handle_;
 
-    float4 SamplePixel(int x, int y);
+    std::vector<Material*> materials_;
+    Material** materials_gpu_handle_;
+    std::map<void*, void*> materials_cpu_handle_to_gpu_handle_;
+
+    std::vector<Object*> scene_;
+    std::vector<Object*> scene_tmp_buffer_;
+    Object** scene_gpu_handle_;
+    std::map<void*, void*> object_cpu_handle_to_gpu_handle_;
+
+    curandState* d_rng_states_;
 
 public:
-    float (*time_to_ori_x)(int64_t);
-    float (*time_to_ori_y)(int64_t);
-    float (*time_to_ori_z)(int64_t);
+    void AddMeterial(Material* material);
 
-    float (*time_to_look_at_x)(int64_t);
-    float (*time_to_look_at_y)(int64_t);
-    float (*time_to_look_at_z)(int64_t);
+    void AddObject(Object* obj);
+
+    void AllocateGpuMemory();
 
     void DispatchRay(uint8_t* buf, int size, int64_t t);
+
     void ReSize(int width, int height);
 
     void SetCamera(MotionalCamera* camera);
-    void SetScene(Scene* scene);
 };
 
 #endif  // RAY_TRACER_H_3252363

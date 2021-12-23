@@ -7,24 +7,25 @@
 #include "ray_tracing_math.hpp"
 
 struct Ray {
-    float4 origin;
-    float4 dir;
+    Float4 origin;
+    Float4 dir;
     float tmin;
     float tmax;
 };
 
 struct RayPayload {
-    float4 radiance;
-    float4 attenuation;
-    float4 hit_pos;
-    float4 bounce_dir;
+    Float4 radiance;
+    Float4 attenuation;
+    Float4 hit_pos;
+    Float4 bounce_dir;
     uint recursion_depth;
+    curandState *d_rng_states;
 };
 
 struct ProceduralPrimitiveAttributes {
-    // float4 ray_dir;
-    float4 normal;
-    float4 hit_pos;
+    // Float4 ray_dir;
+    Float4 normal;
+    Float4 hit_pos;
 };
 
 #endif  // RAY_TRACER_COMMON_H

@@ -43,13 +43,11 @@ int main(int argc, char **argv) {
     int buf_size = width * height * 3;
     uint8_t *buf = new uint8_t[buf_size];
     PathTracer *path_tracer = new PathTracer;
-    Scene *scene = new Scene;
     MotionalCamera *camera = new MotionalCamera(width, height);
 
     camera->SetViewFov(35);
 
     path_tracer->ReSize(width, height);
-    path_tracer->SetScene(scene);
     path_tracer->SetCamera(camera);
 
     {
@@ -58,28 +56,26 @@ int main(int argc, char **argv) {
             materials.push_back(new Material);
             materials[i]->Kd_ = poca_mus::CreateRandomFloat4();
         }
+        for (Material *material : materials) path_tracer->AddMeterial(material);
 
         Object *earth = new Object();
         earth->material_ = materials[0];
-        scene->AddObject(earth);
+        path_tracer->AddObject(earth);
 
         for (int i = -50; i < 50; i += 5) {
             Object *ball = new Object();
             ball->material_ = materials[rand() % 10];
-            ball->center_ = float4(poca_mus::Random() * 100.f - 50.f, 1.f + poca_mus::Random() * 2.f, i);
+            ball->center_ = Float4(poca_mus::Random() * 100.f - 50.f, 1.f + poca_mus::Random() * 2.f, float(i));
             ball->radius_ = poca_mus::Random() * 2.f + 1.f;
-            scene->AddObject(ball);
+            path_tracer->AddObject(ball);
         }
     }
 
-    path_tracer->time_to_look_at_x = time_to_look_at_x;
-    path_tracer->time_to_look_at_y = time_to_look_at_y;
-    path_tracer->time_to_look_at_z = time_to_look_at_z;
-    path_tracer->time_to_ori_x = time_to_ori_x;
-    path_tracer->time_to_ori_y = time_to_ori_y;
-    path_tracer->time_to_ori_z = time_to_ori_z;
+    path_tracer->AllocateGpuMemory();
 
     for (int i = 0; i < 200; ++i) {
+        camera->SetOrigin(time_to_ori_x(i), time_to_ori_y(i), time_to_ori_z(i));
+        camera->SetLookAt(time_to_look_at_x(i), time_to_look_at_y(i), time_to_look_at_z(i));
         path_tracer->DispatchRay(buf, buf_size, i);
         recoder->AddFrame(buf, buf_size);
     }

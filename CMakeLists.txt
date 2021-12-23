@@ -1,8 +1,13 @@
-cmake_minimum_required(VERSION 3.16)
-project(MiniPathTracer)
+cmake_minimum_required(VERSION 3.9)
+project(MiniPathTracer CXX CUDA)
+
+SET(CMAKE_CXX_COMPILER "/usr/bin/c++")
+SET(CMAKE_C_COMPILER "/usr/bin/cc")
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(/usr/local/cuda-11.5/include)
 
 link_directories(${CMAKE_SOURCE_DIR}/libs)
 
