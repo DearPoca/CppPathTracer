@@ -8,8 +8,8 @@
 enum MaterialType
 {
     Diffuse = 0,
-    Mirror,
     Plastic,
+    Mirror,
     Glass
 };
 
@@ -31,7 +31,6 @@ public:
 
     FUNC_TYPE_DEFINE_MATERIAL;
     FuncEvalAttenuationAndCreateRayPtr EvalAttenuationAndCreateRay;
-
 };
 FUNC_TYPE_DEFINE_MATERIAL;
 void MaterialMemCpyToGpu(Material *material_host, Material *material_gpu_handle);

@@ -9,28 +9,29 @@ int height = 1080;
 
 float time_to_ori_x(int64_t t) {
     float ft = float(t) / 10.f;
-    return -ft * ft + ft;
+    return 13.f + 0.3f * (ft - 5) * (ft - 15);
 }
 float time_to_ori_y(int64_t t) {
     float ft = float(t) / 10.f;
-    return 33.f - 0.05 * ft * ft + ft;
+    return 3.f + 0.05 * ft * ft;
 }
 float time_to_ori_z(int64_t t) {
     float ft = float(t) / 10.f;
-    return 13.f - ft * ft + 6.f * ft;
+    return 13.f + 0.3f * (ft - 5) * (ft - 15);
+    ;
 }
 
 float time_to_look_at_x(int64_t t) {
     float ft = float(t) / 10.f;
-    return 0.f + ft * 0.5 - ft * ft * 0.25;
+    return 3.f + 0.5 * ft * (ft - 20);
 }
 float time_to_look_at_y(int64_t t) {
     float ft = float(t) / 10.f;
-    return 0.f + 0.005 * ft * ft;
+    return 5.f + 0.02 * ft * ft;
 }
 float time_to_look_at_z(int64_t t) {
     float ft = float(t) / 10.f;
-    return 0.f;
+    return 3.f - 0.5 * ft * (ft - 20);
 }
 
 int main(int argc, char **argv) {
@@ -53,9 +54,28 @@ int main(int argc, char **argv) {
     {
         // 创建材质库
         std::vector<Material *> materials = {new Material};
-        for (int i = 1; i < 10; ++i) {
+        for (int i = 1; i < 20; ++i) {
             materials.push_back(new Material);
             materials[i]->Kd_ = poca_mus::CreateRandomFloat4();
+            int rnd = int(poca_mus::Random() * 4) % 4;
+            switch (rnd) {
+                case 1:
+                    materials[i]->type_ = MaterialType::Plastic;
+                    materials[i]->smoothness_ = poca_mus::Random() * 4 + 1.f;
+                    break;
+                case 2:
+                    materials[i]->type_ = MaterialType::Mirror;
+                    materials[i]->smoothness_ = poca_mus::Random() * 5;
+                    break;
+                case 3:
+                    materials[i]->type_ = MaterialType::Glass;
+                    materials[i]->smoothness_ = poca_mus::Random() * 4 + 1.f;
+                    materials[i]->refraction_ = poca_mus::Random() * 2 + 1.f;
+                    materials[i]->Kd_ = 1.f;
+                    break;
+                default:
+                    materials[i]->type_ = MaterialType::Diffuse;
+            }
         }
         for (Material *material : materials) path_tracer->AddMeterial(material);
 
@@ -64,10 +84,10 @@ int main(int argc, char **argv) {
         earth->material_ = materials[0];
         path_tracer->AddObject(earth);
 
-        for (int i = -150; i < 150; i += 5) {
+        for (int i = -150; i < 150; i += 3) {
             Object *ball = new Object();
-            ball->material_ = materials[rand() % 10];
-            ball->center_ = Float4(poca_mus::Random() * 100.f - 50.f, 1.f + poca_mus::Random() * 2.f, float(i));
+            ball->material_ = materials[rand() % 20];
+            ball->center_ = Float4(poca_mus::Random() * 300.f - 150.f, 1.f + poca_mus::Random() * 5.f, float(i));
             ball->radius_ = poca_mus::Random() * 2.f + 1.f;
             path_tracer->AddObject(ball);
         }

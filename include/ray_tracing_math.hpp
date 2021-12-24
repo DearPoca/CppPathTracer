@@ -69,6 +69,11 @@ public:
         return *this;
     }
 
+    __COMMON_GPU_CPU_INLINE__ Float4 &operator=(float v) {
+        x = y = z = w = v;
+        return *this;
+    }
+
     __COMMON_GPU_CPU_INLINE__ Float4 &operator+() { return *this; }
     __COMMON_GPU_CPU_INLINE__ Float4 operator-() { return Float4(-this->x, -this->y, -this->z, -this->w); }
 
@@ -200,6 +205,31 @@ namespace poca_mus {
         }
         B = Cross(C, N);
         return a.x * B + a.y * C + a.z * N;
+    }
+
+    __COMMON_GPU_CPU_INLINE__ Float4 Reflect(Float4 &wi, Float4 &N) {
+        Float4 nor_wi = GetNormalizeVec(wi);
+        Float4 ndi = GetNormalizeVec(N);
+        ndi *= Dot(-wi, ndi);
+        return nor_wi + ndi * 2;
+    }
+
+    __COMMON_GPU_CPU_INLINE__ float Schlick(float cosine, float ref_idx) {
+        float r0 = (1 - ref_idx) / (1 + ref_idx);
+        r0 *= r0;
+        return r0 + (1 - r0) * pow(1 - cosine, 5);
+    }
+
+    __COMMON_GPU_CPU_INLINE__ bool CanRefract(Float4 v, Float4 n, float ni_over_nt, Float4 refracted) {
+        Float4 uv = GetNormalizeVec(v);
+        float dt = Dot(uv, n);
+        float discriminant = 1.0 - ni_over_nt * (1 - dt * dt);
+        if (discriminant > 0) {
+            refracted = ni_over_nt * (uv - n * dt) - n * sqrt(discriminant);
+            Normalize(refracted);
+            return true;
+        }
+        return false;
     }
 
 }  // namespace poca_mus
