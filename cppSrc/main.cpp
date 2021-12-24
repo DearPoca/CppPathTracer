@@ -13,7 +13,7 @@ float time_to_ori_x(int64_t t) {
 }
 float time_to_ori_y(int64_t t) {
     float ft = float(t) / 10.f;
-    return 33.f + ft * ft + ft;
+    return 33.f - 0.05 * ft * ft + ft;
 }
 float time_to_ori_z(int64_t t) {
     float ft = float(t) / 10.f;
@@ -22,11 +22,11 @@ float time_to_ori_z(int64_t t) {
 
 float time_to_look_at_x(int64_t t) {
     float ft = float(t) / 10.f;
-    return 0.f;
+    return 0.f + ft * 0.5 - ft * ft * 0.25;
 }
 float time_to_look_at_y(int64_t t) {
     float ft = float(t) / 10.f;
-    return 0.f;
+    return 0.f + 0.005 * ft * ft;
 }
 float time_to_look_at_z(int64_t t) {
     float ft = float(t) / 10.f;
@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
     path_tracer->SetCamera(camera);
 
     {
+        // 创建材质库
         std::vector<Material *> materials = {new Material};
         for (int i = 1; i < 10; ++i) {
             materials.push_back(new Material);
@@ -58,11 +59,12 @@ int main(int argc, char **argv) {
         }
         for (Material *material : materials) path_tracer->AddMeterial(material);
 
+        // 创建物体库
         Object *earth = new Object();
         earth->material_ = materials[0];
         path_tracer->AddObject(earth);
 
-        for (int i = -50; i < 50; i += 5) {
+        for (int i = -150; i < 150; i += 5) {
             Object *ball = new Object();
             ball->material_ = materials[rand() % 10];
             ball->center_ = Float4(poca_mus::Random() * 100.f - 50.f, 1.f + poca_mus::Random() * 2.f, float(i));
@@ -72,6 +74,7 @@ int main(int argc, char **argv) {
     }
 
     path_tracer->AllocateGpuMemory();
+    path_tracer->SetSamplePerPixel(10);
 
     for (int i = 0; i < 200; ++i) {
         camera->SetOrigin(time_to_ori_x(i), time_to_ori_y(i), time_to_ori_z(i));

@@ -13,10 +13,9 @@ struct PathTracerparams {
     uint scene_size;
 
     uint spp;
-
-    MotionalCamera* camera;
     uint max_recursion_depth;
 
+    MotionalCamera* camera;
     uint8_t* output_buffer_gpu_handle;
 
     curandState* d_rng_states;
@@ -66,6 +65,8 @@ void MotionalCamera::Updata() {
     w_ = poca_mus::GetNormalizeVec(origin_ - look_at_);
     u_ = poca_mus::GetNormalizeVec(poca_mus::Cross(vup, w_));
     v_ = poca_mus::Cross(w_, u_);
+
+    dist_to_focus_ = poca_mus::Length(origin_ - look_at_);
 
     top_left_corner_ =
         origin_ - half_width * dist_to_focus_ * u_ + half_height * dist_to_focus_ * v_ - dist_to_focus_ * w_;
@@ -128,6 +129,7 @@ void PathTracer::ReSize(int width, int height) {
     this->width_ = width;
     this->height_ = height;
 }
+void PathTracer::SetSamplePerPixel(uint spp) { spp_ = spp; }
 
 __global__ void SamplePixel(PathTracerparams params) {
     uint x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -184,22 +186,31 @@ void PathTracer::AllocateGpuMemory() {
 
 void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     camera_->Updata();
+    cudaMemcpy(camera_gpu_handle_, camera_, sizeof(MotionalCamera), cudaMemcpyHostToDevice);
+
+    for (auto ptr_pair : materials_cpu_handle_to_gpu_handle_) {
+        MaterialMemCpyToGpu((Material*)ptr_pair.first, (Material*)ptr_pair.second);
+    }
+    for (auto ptr_pair : object_cpu_handle_to_gpu_handle_) {
+        ObjectMemCpyToGpu((Object*)ptr_pair.first, (Object*)ptr_pair.second, materials_cpu_handle_to_gpu_handle_);
+    }
 
     PathTracerparams params;
     params.width = width_;
     params.height = height_;
+
     params.scene = scene_gpu_handle_;
     params.scene_size = scene_.size();
-    params.camera = camera_gpu_handle_;
-    params.spp = 5;
-    params.camera = camera_gpu_handle_;
+
+    params.spp = spp_;
     params.max_recursion_depth = max_recursion_depth_;
-    params.d_rng_states = d_rng_states_;
+
+    params.camera = camera_gpu_handle_;
     params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
 
-    cudaMemcpy(camera_gpu_handle_, camera_, sizeof(MotionalCamera), cudaMemcpyHostToDevice);
+    params.d_rng_states = d_rng_states_;
 
-    dim3 threadsPerBlock(8, 8);
+    dim3 threadsPerBlock(16, 16);
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
     SamplePixel<<<numBlocks, threadsPerBlock>>>(params);
     cudaDeviceSynchronize();

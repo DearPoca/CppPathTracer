@@ -22,6 +22,6 @@ set_property(TARGET ${CUDA_PT_LIB_NAME} PROPERTY CUDA_ARCHITECTURES 70-real 72-v
 add_executable(${PROJECT_NAME} ${CPP_SRCS})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CUDA_ARCHITECTURES 70-real 72-virtual)
 
-set(LIBS avformat avcodec avutil swscale swresample opencv_core opencv_imgproc x264)
+set(LIBS avformat avcodec avutil swscale swresample opencv_core opencv_imgproc opencv_photo x264)
 target_link_libraries(${PROJECT_NAME} ${LIBS})
 target_link_libraries(${PROJECT_NAME} ${CUDA_PT_LIB_NAME})

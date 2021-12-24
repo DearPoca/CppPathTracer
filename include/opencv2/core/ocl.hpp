@@ -70,7 +70,7 @@ class CV_EXPORTS Image2D;
 class CV_EXPORTS_W_SIMPLE Device
 {
 public:
-    CV_WRAP Device();
+    CV_WRAP Device() CV_NOEXCEPT;
     explicit Device(void* d);
     Device(const Device& d);
     Device& operator = (const Device& d);
@@ -238,7 +238,7 @@ protected:
 class CV_EXPORTS Context
 {
 public:
-    Context();
+    Context() CV_NOEXCEPT;
     explicit Context(int dtype);
     ~Context();
     Context(const Context& c);
@@ -269,7 +269,7 @@ public:
 class CV_EXPORTS Platform
 {
 public:
-    Platform();
+    Platform() CV_NOEXCEPT;
     ~Platform();
     Platform(const Platform& p);
     Platform& operator = (const Platform& p);
@@ -324,7 +324,7 @@ void initializeContextFromHandle(Context& ctx, void* platform, void* context, vo
 class CV_EXPORTS Queue
 {
 public:
-    Queue();
+    Queue() CV_NOEXCEPT;
     explicit Queue(const Context& c, const Device& d=Device());
     ~Queue();
     Queue(const Queue& q);
@@ -350,7 +350,7 @@ class CV_EXPORTS KernelArg
 public:
     enum { LOCAL=1, READ_ONLY=2, WRITE_ONLY=4, READ_WRITE=6, CONSTANT=8, PTR_ONLY = 16, NO_SIZE=256 };
     KernelArg(int _flags, UMat* _m, int wscale=1, int iwscale=1, const void* _obj=0, size_t _sz=0);
-    KernelArg();
+    KernelArg() CV_NOEXCEPT;
 
     static KernelArg Local(size_t localMemSize)
     { return KernelArg(LOCAL, 0, 1, 1, 0, localMemSize); }
@@ -387,7 +387,7 @@ public:
 class CV_EXPORTS Kernel
 {
 public:
-    Kernel();
+    Kernel() CV_NOEXCEPT;
     Kernel(const char* kname, const Program& prog);
     Kernel(const char* kname, const ProgramSource& prog,
            const String& buildopts = String(), String* errmsg=0);
@@ -407,29 +407,164 @@ public:
     template<typename _Tp> int set(int i, const _Tp& value)
     { return set(i, &value, sizeof(value)); }
 
+    template<typename _Tp0>
+    Kernel& args(const _Tp0& a0)
+    {
+        set(0, a0); return *this;
+    }
 
-protected:
-    template<typename _Tp0> inline
-    int set_args_(int i, const _Tp0& a0) { return set(i, a0); }
-    template<typename _Tp0, typename... _Tps> inline
-    int set_args_(int i, const _Tp0& a0, const _Tps&... rest_args) { i = set(i, a0); return set_args_(i, rest_args...); }
-public:
-    /** @brief Setup OpenCL Kernel arguments.
-    Avoid direct using of set(i, ...) methods.
-    @code
-    bool ok = kernel
-        .args(
-            srcUMat, dstUMat,
-            (float)some_float_param
-        ).run(ndims, globalSize, localSize);
-    if (!ok) return false;
-    @endcode
-    */
-    template<typename... _Tps> inline
-    Kernel& args(const _Tps&... kernel_args) { set_args_(0, kernel_args...); return *this; }
+    template<typename _Tp0, typename _Tp1>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1)
+    {
+        int i = set(0, a0); set(i, a1); return *this;
+    }
 
+    template<typename _Tp0, typename _Tp1, typename _Tp2>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2)
+    {
+        int i = set(0, a0); i = set(i, a1); set(i, a2); return *this;
+    }
 
-    /** @brief Run the OpenCL kernel.
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3, typename _Tp4>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2,
+                 const _Tp3& a3, const _Tp4& a4)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2);
+        i = set(i, a3); set(i, a4); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2,
+             typename _Tp3, typename _Tp4, typename _Tp5>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2,
+                 const _Tp3& a3, const _Tp4& a4, const _Tp5& a5)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2);
+        i = set(i, a3); i = set(i, a4); set(i, a5); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3);
+        i = set(i, a4); i = set(i, a5); set(i, a6); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3);
+        i = set(i, a4); i = set(i, a5); i = set(i, a6); set(i, a7); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3, typename _Tp4,
+             typename _Tp5, typename _Tp6, typename _Tp7, typename _Tp8>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4);
+        i = set(i, a5); i = set(i, a6); i = set(i, a7); set(i, a8); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3, typename _Tp4,
+             typename _Tp5, typename _Tp6, typename _Tp7, typename _Tp8, typename _Tp9>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); set(i, a9); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7,
+             typename _Tp8, typename _Tp9, typename _Tp10>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9, const _Tp10& a10)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); i = set(i, a9); set(i, a10); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7,
+             typename _Tp8, typename _Tp9, typename _Tp10, typename _Tp11>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9, const _Tp10& a10, const _Tp11& a11)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); i = set(i, a9); i = set(i, a10); set(i, a11); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7,
+             typename _Tp8, typename _Tp9, typename _Tp10, typename _Tp11, typename _Tp12>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9, const _Tp10& a10, const _Tp11& a11,
+                 const _Tp12& a12)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); i = set(i, a9); i = set(i, a10); i = set(i, a11);
+        set(i, a12); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7,
+             typename _Tp8, typename _Tp9, typename _Tp10, typename _Tp11, typename _Tp12,
+             typename _Tp13>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9, const _Tp10& a10, const _Tp11& a11,
+                 const _Tp12& a12, const _Tp13& a13)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); i = set(i, a9); i = set(i, a10); i = set(i, a11);
+        i = set(i, a12); set(i, a13); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7,
+             typename _Tp8, typename _Tp9, typename _Tp10, typename _Tp11, typename _Tp12,
+             typename _Tp13, typename _Tp14>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9, const _Tp10& a10, const _Tp11& a11,
+                 const _Tp12& a12, const _Tp13& a13, const _Tp14& a14)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); i = set(i, a9); i = set(i, a10); i = set(i, a11);
+        i = set(i, a12); i = set(i, a13); set(i, a14); return *this;
+    }
+
+    template<typename _Tp0, typename _Tp1, typename _Tp2, typename _Tp3,
+             typename _Tp4, typename _Tp5, typename _Tp6, typename _Tp7,
+             typename _Tp8, typename _Tp9, typename _Tp10, typename _Tp11, typename _Tp12,
+             typename _Tp13, typename _Tp14, typename _Tp15>
+    Kernel& args(const _Tp0& a0, const _Tp1& a1, const _Tp2& a2, const _Tp3& a3,
+                 const _Tp4& a4, const _Tp5& a5, const _Tp6& a6, const _Tp7& a7,
+                 const _Tp8& a8, const _Tp9& a9, const _Tp10& a10, const _Tp11& a11,
+                 const _Tp12& a12, const _Tp13& a13, const _Tp14& a14, const _Tp15& a15)
+    {
+        int i = set(0, a0); i = set(i, a1); i = set(i, a2); i = set(i, a3); i = set(i, a4); i = set(i, a5);
+        i = set(i, a6); i = set(i, a7); i = set(i, a8); i = set(i, a9); i = set(i, a10); i = set(i, a11);
+        i = set(i, a12); i = set(i, a13); i = set(i, a14); set(i, a15); return *this;
+    }
+
+    /** @brief Run the OpenCL kernel (globalsize value may be adjusted)
+
     @param dims the work problem dimensions. It is the length of globalsize and localsize. It can be either 1, 2 or 3.
     @param globalsize work items for each dimension. It is not the final globalsize passed to
       OpenCL. Each dimension will be adjusted to the nearest integer divisible by the corresponding
@@ -438,12 +573,26 @@ public:
     @param localsize work-group size for each dimension.
     @param sync specify whether to wait for OpenCL computation to finish before return.
     @param q command queue
+
+    @note Use run_() if your kernel code doesn't support adjusted globalsize.
     */
     bool run(int dims, size_t globalsize[],
              size_t localsize[], bool sync, const Queue& q=Queue());
+
+    /** @brief Run the OpenCL kernel
+     *
+     * @param dims the work problem dimensions. It is the length of globalsize and localsize. It can be either 1, 2 or 3.
+     * @param globalsize work items for each dimension. This value is passed to OpenCL without changes.
+     * @param localsize work-group size for each dimension.
+     * @param sync specify whether to wait for OpenCL computation to finish before return.
+     * @param q command queue
+     */
+    bool run_(int dims, size_t globalsize[], size_t localsize[], bool sync, const Queue& q=Queue());
+
     bool runTask(bool sync, const Queue& q=Queue());
 
-    /** @brief Similar to synchronized run() call with returning of kernel execution time
+    /** @brief Similar to synchronized run_() call with returning of kernel execution time
+     *
      * Separate OpenCL command queue may be used (with CL_QUEUE_PROFILING_ENABLE)
      * @return Execution time in nanoseconds or negative number on error
      */
@@ -464,7 +613,7 @@ protected:
 class CV_EXPORTS Program
 {
 public:
-    Program();
+    Program() CV_NOEXCEPT;
     Program(const ProgramSource& src,
             const String& buildflags, String& errmsg);
     Program(const Program& prog);
@@ -509,7 +658,7 @@ class CV_EXPORTS ProgramSource
 public:
     typedef uint64 hash_t; // deprecated
 
-    ProgramSource();
+    ProgramSource() CV_NOEXCEPT;
     explicit ProgramSource(const String& module, const String& name, const String& codeStr, const String& codeHash);
     explicit ProgramSource(const String& prog); // deprecated
     explicit ProgramSource(const char* prog); // deprecated
@@ -578,7 +727,7 @@ protected:
 class CV_EXPORTS PlatformInfo
 {
 public:
-    PlatformInfo();
+    PlatformInfo() CV_NOEXCEPT;
     explicit PlatformInfo(void* id);
     ~PlatformInfo();
 
@@ -587,7 +736,12 @@ public:
 
     String name() const;
     String vendor() const;
+
+    /// See CL_PLATFORM_VERSION
     String version() const;
+    int versionMajor() const;
+    int versionMinor() const;
+
     int deviceNumber() const;
     void getDevice(Device& device, int d) const;
 
@@ -638,7 +792,7 @@ CV_EXPORTS void buildOptionsAddMatrixDescription(String& buildOptions, const Str
 class CV_EXPORTS Image2D
 {
 public:
-    Image2D();
+    Image2D() CV_NOEXCEPT;
 
     /**
     @param src UMat object from which to get image properties and data

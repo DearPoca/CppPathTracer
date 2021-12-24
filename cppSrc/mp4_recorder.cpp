@@ -5,6 +5,7 @@
 #include <string>
 
 #include "opencv2/imgproc.hpp"
+#include "opencv2/photo.hpp"
 #include "stdio.h"
 
 void Mp4Recoder::set_resolution(int width, int height) {
@@ -130,15 +131,16 @@ void Mp4Recoder::Process() {
         if (data_end == true) break;
 
         cv::Mat src(height_, width_, CV_8UC3, raw_data_buff_);
+        cv::Mat dst_means_denoising;
         cv::Mat dst_gaussian;
         cv::Mat dst_bilateral;
-        cv::GaussianBlur(src, dst_gaussian, cv::Size(5, 5), 5, 5);
-        cv::bilateralFilter(dst_gaussian, dst_bilateral, 15, 20, 50);
+        cv::Mat dst_filter;
 
-        cv::Mat result;
-        cv::filter2D(dst_bilateral, result, CV_8UC3, kernel);
+        cv::GaussianBlur(src, dst_gaussian, cv::Size(3, 3), 5, 5);
+        cv::bilateralFilter(dst_gaussian, dst_bilateral, 5, 50, 50);
+        cv::filter2D(dst_bilateral, dst_filter, CV_8UC3, kernel);
 
-        ret = sws_scale(sws_context_, &dst_bilateral.data, line_size, 0, height_, dst_frame_->data, dst_frame_->linesize);
+        ret = sws_scale(sws_context_, &dst_filter.data, line_size, 0, height_, dst_frame_->data, dst_frame_->linesize);
 
         wait_for_encoder_.Signal();
 
