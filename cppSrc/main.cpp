@@ -4,8 +4,8 @@
 #include "path_tracer.h"
 
 std::string dst_file_path = "./video.mp4";
-int width = 1280;
-int height = 720;
+int width = 1920;
+int height = 1080;
 
 float time_to_ori_x(int64_t t) {
     float ft = float(t) / 10.f;

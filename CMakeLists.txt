@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.9)
-project(MiniPathTracer)
+project(CUDAPathTracer)
 enable_language(CUDA)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -14,13 +14,14 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/cuSrc CUDA_SRCS)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library(cudaMatMul ${CUDA_SRCS})
-set_target_properties( cudaMatMul PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-set_property(TARGET cudaMatMul PROPERTY CUDA_ARCHITECTURES 70-real 72-virtual)
+set(CUDA_PT_LIB_NAME cudaPathTracer)
+add_library(${CUDA_PT_LIB_NAME} ${CUDA_SRCS})
+set_target_properties( ${CUDA_PT_LIB_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET ${CUDA_PT_LIB_NAME} PROPERTY CUDA_ARCHITECTURES 70-real 72-virtual)
 
 add_executable(${PROJECT_NAME} ${CPP_SRCS})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CUDA_ARCHITECTURES 70-real 72-virtual)
 
 set(LIBS avformat avcodec avutil swscale swresample opencv_core opencv_imgproc x264)
 target_link_libraries(${PROJECT_NAME} ${LIBS})
-target_link_libraries(${PROJECT_NAME} cudaMatMul)
+target_link_libraries(${PROJECT_NAME} ${CUDA_PT_LIB_NAME})
