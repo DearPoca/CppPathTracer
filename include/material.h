@@ -27,14 +27,13 @@ public:
     float smoothness_;
     float reflectivity_;
 
-    Material();
+    __COMMON_GPU_CPU__ Material();
+
     FUNC_TYPE_DEFINE_MATERIAL;
-
     FuncEvalAttenuationAndCreateRayPtr EvalAttenuationAndCreateRay;
+
 };
-
 FUNC_TYPE_DEFINE_MATERIAL;
-
 void MaterialMemCpyToGpu(Material *material_host, Material *material_gpu_handle);
 
 #endif  // MATERIAL_H_432528432

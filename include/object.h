@@ -15,8 +15,7 @@ class Object {
 private:
 public:
     Material *material_;
-    Object();
-    ~Object();
+    __COMMON_GPU_CPU__ Object();
 
     float minx_;
     float miny_;
@@ -27,15 +26,14 @@ public:
 
     Float4 center_;
     float radius_;
+
     FUNC_TYPE_DEFINE_INTERSECTION;
     FUNC_TYPE_DEFINE_CLOSET_HIT;
+    FuncIntersectionTestPtr IntersectionTest;
+    FuncClosetHitPtr ClosetHit;
 
-    FuncIntersectionTestPtr IntersectionTestPtr;
-    FuncClosetHitPtr ClosetHitPtr;
-
-    // bool IntersectionTest(Ray &ray, ProceduralPrimitiveAttributes &attr);
-    // void ClosetHit(Ray &ray, RayPayload &payload, ProceduralPrimitiveAttributes &attr);
 };
+
 FUNC_TYPE_DEFINE_INTERSECTION;
 FUNC_TYPE_DEFINE_CLOSET_HIT;
 
