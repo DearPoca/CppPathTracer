@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
             Object *ball = new Object();
             ball->material_ = materials[rand() % 20];
             ball->center_ = Float4(poca_mus::Random() * 300.f - 150.f, 1.f + poca_mus::Random() * 5.f, float(i));
-            ball->radius_ = poca_mus::Random() * 2.f + 1.f;
+            ball->radius_ = poca_mus::Random() * 5.f + 1.f;
             path_tracer->AddObject(ball);
         }
     }

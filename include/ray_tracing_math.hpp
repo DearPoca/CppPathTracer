@@ -232,6 +232,10 @@ namespace poca_mus {
         return false;
     }
 
+    __device__ inline Float4 GpuCreateRandomFloat4(curandState *state) {
+        return Float4(curand_uniform(state), curand_uniform(state), curand_uniform(state), curand_uniform(state));
+    }
+
 }  // namespace poca_mus
 
 #endif  // RAY_TRACING_MATH_HPP

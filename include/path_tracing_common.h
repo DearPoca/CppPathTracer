@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#include "material.h"
 #include "ray_tracing_math.hpp"
 
 struct Ray {
