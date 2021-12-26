@@ -31,12 +31,11 @@ public:
     FUNC_TYPE_DEFINE_CLOSET_HIT;
     FuncIntersectionTestPtr IntersectionTest;
     FuncClosetHitPtr ClosetHit;
-
 };
 
 FUNC_TYPE_DEFINE_INTERSECTION;
 FUNC_TYPE_DEFINE_CLOSET_HIT;
 
-void ObjectMemCpyToGpu(Object *object_host, Object *object_gpu_handle, std::map<void *, void *> &mp);
+void ObjectMemCpyToGpu(Object *object_host, Object *object_gpu_handle, Material *material_gpu_handle);
 
 #endif  // OBJECT_H_45234263

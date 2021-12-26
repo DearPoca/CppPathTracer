@@ -7,14 +7,14 @@
 #include "object.h"
 #include "path_tracing_common.h"
 
-#define MAX_RECURSION_DEPTH 5
+#define MAX_RECURSION_DEPTH 32
 
 class PathTracer {
 private:
     int width_;
     int height_;
     uint spp_ = 5;
-    uint8_t max_recursion_depth_ = MAX_RECURSION_DEPTH;
+    uint8_t max_recursion_depth_ = 5;
     // Float4* render_target_gpu_handle_;
     uint8_t* output_buffer_gpu_handle_;
 

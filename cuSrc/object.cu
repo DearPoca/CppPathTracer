@@ -38,10 +38,10 @@ __COMMON_GPU_CPU__ Object::Object() : radius_(1000.f), center_(Float4(0.f, -1000
 __device__ FuncIntersectionTestPtr fp_intersection_sphere = SphereIntersectionTest;
 __device__ FuncClosetHitPtr fp_closet_hit = ClosetHit;
 
-void ObjectMemCpyToGpu(Object *object_host, Object *object_gpu_handle, std::map<void *, void *> &meterial_cpu_to_gpu) {
+void ObjectMemCpyToGpu(Object *object_host, Object *object_gpu_handle, Material *material_gpu_handle) {
     Object tmp;
     memcpy(&tmp, object_host, sizeof(Object));
-    tmp.material_ = (Material *)(meterial_cpu_to_gpu[object_host->material_]);
+    tmp.material_ = material_gpu_handle;
     cudaMemcpy((void *)object_gpu_handle, (void *)&tmp, sizeof(Object), cudaMemcpyHostToDevice);
     cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_sphere, sizeof(FuncIntersectionTestPtr));
     cudaMemcpyFromSymbol(&object_gpu_handle->ClosetHit, fp_closet_hit, sizeof(FuncIntersectionTestPtr));
