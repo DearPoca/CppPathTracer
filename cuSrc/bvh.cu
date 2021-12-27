@@ -6,70 +6,68 @@
 #include "path_tracing_common.h"
 #include "ray_tracing_math.hpp"
 
-BVHNode *BuildBVHInCpu(std::vector<Object *> &objs) {
-    using NodePtr = BVHNode *;
-    auto Divide = [&](auto &&self, int l, int r) -> NodePtr {
-        if (l >= r) return nullptr;
-        BVHNode *ret = new BVHNode;
-        if (l == r - 1) {
-            ret->left_son_ = nullptr;
-            ret->right_son_ = nullptr;
-            ret->minx_ = objs[l]->minx_;
-            ret->miny_ = objs[l]->miny_;
-            ret->minz_ = objs[l]->minz_;
-            ret->maxx_ = objs[l]->maxx_;
-            ret->maxy_ = objs[l]->maxy_;
-            ret->maxz_ = objs[l]->maxz_;
-            ret->is_object_ = true;
-            ret->obj_ = objs[l];
-            return ret;
-        }
-        float minx = objs[l]->minx_;
-        float miny = objs[l]->miny_;
-        float minz = objs[l]->minz_;
-        float maxx = objs[l]->maxx_;
-        float maxy = objs[l]->maxy_;
-        float maxz = objs[l]->maxz_;
-        for (int i = l + 1; i < r; ++i) {
-            minx = MIN(minx, objs[i]->minx_);
-            miny = MIN(miny, objs[i]->miny_);
-            minz = MIN(minz, objs[i]->minz_);
-            maxx = MAX(maxx, objs[i]->maxx_);
-            maxy = MAX(maxy, objs[i]->maxy_);
-            maxz = MAX(maxz, objs[i]->maxz_);
-        }
-
-        float span_x = maxx - minx;
-        float span_y = maxy - miny;
-        float span_z = maxz - minz;
-        if (span_x > span_y && span_x > span_z) {
-            std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
-                return (a->minx_ + a->maxx_) / 2 < (b->minx_ + b->maxx_) / 2;
-            });
-        } else if (span_y > span_x && span_y > span_z) {
-            std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
-                return (a->miny_ + a->maxy_) / 2 < (b->miny_ + b->maxy_) / 2;
-            });
-        } else {
-            std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
-                return (a->minz_ + a->maxz_) / 2 < (b->minz_ + b->maxz_) / 2;
-            });
-        }
-        int mid = (l + r) / 2;
-        ret->left_son_ = self(self, l, mid);
-        ret->right_son_ = self(self, mid, r);
-        ret->minx_ = minx;
-        ret->miny_ = miny;
-        ret->minz_ = minz;
-        ret->maxx_ = maxx;
-        ret->maxy_ = maxy;
-        ret->maxz_ = maxz;
-        ret->is_object_ = false;
-        ret->obj_ = nullptr;
+BVHNode *Divide(std::vector<Object *> &objs, int l, int r) {
+    if (l >= r) return nullptr;
+    BVHNode *ret = new BVHNode;
+    if (l == r - 1) {
+        ret->left_son_ = nullptr;
+        ret->right_son_ = nullptr;
+        ret->minx_ = objs[l]->minx_;
+        ret->miny_ = objs[l]->miny_;
+        ret->minz_ = objs[l]->minz_;
+        ret->maxx_ = objs[l]->maxx_;
+        ret->maxy_ = objs[l]->maxy_;
+        ret->maxz_ = objs[l]->maxz_;
+        ret->is_object_ = true;
+        ret->obj_ = objs[l];
         return ret;
-    };
-    return Divide(Divide, 0, objs.size());
+    }
+    float minx = objs[l]->minx_;
+    float miny = objs[l]->miny_;
+    float minz = objs[l]->minz_;
+    float maxx = objs[l]->maxx_;
+    float maxy = objs[l]->maxy_;
+    float maxz = objs[l]->maxz_;
+    for (int i = l + 1; i < r; ++i) {
+        minx = MIN(minx, objs[i]->minx_);
+        miny = MIN(miny, objs[i]->miny_);
+        minz = MIN(minz, objs[i]->minz_);
+        maxx = MAX(maxx, objs[i]->maxx_);
+        maxy = MAX(maxy, objs[i]->maxy_);
+        maxz = MAX(maxz, objs[i]->maxz_);
+    }
+
+    float span_x = maxx - minx;
+    float span_y = maxy - miny;
+    float span_z = maxz - minz;
+    if (span_x > span_y && span_x > span_z) {
+        std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
+            return (a->minx_ + a->maxx_) / 2 < (b->minx_ + b->maxx_) / 2;
+        });
+    } else if (span_y > span_x && span_y > span_z) {
+        std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
+            return (a->miny_ + a->maxy_) / 2 < (b->miny_ + b->maxy_) / 2;
+        });
+    } else {
+        std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
+            return (a->minz_ + a->maxz_) / 2 < (b->minz_ + b->maxz_) / 2;
+        });
+    }
+    int mid = (l + r) / 2;
+    ret->left_son_ = Divide(objs, l, mid);
+    ret->right_son_ = Divide(objs, mid, r);
+    ret->minx_ = minx;
+    ret->miny_ = miny;
+    ret->minz_ = minz;
+    ret->maxx_ = maxx;
+    ret->maxy_ = maxy;
+    ret->maxz_ = maxz;
+    ret->is_object_ = false;
+    ret->obj_ = nullptr;
+    return ret;
 }
+
+BVHNode *BuildBVHInCpu(std::vector<Object *> &objs) { return Divide(objs, 0, objs.size()); }
 
 std::map<BVHNode *, BVHNode *> bvh_node_cpu_handle_to_gpu_handle;
 std::map<Object *, Object *> object_cpu_handle_to_gpu_handle;
