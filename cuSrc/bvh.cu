@@ -116,7 +116,7 @@ __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimiti
         else
             return nullptr;
     }
-    float local_tmin, local_tmax;
+    float local_tmin = -3e+30f, local_tmax = 3e+30f;
     if (ray.dir.x != 0.f) {
         float tmin = (node->minx_ - ray.origin.x) / ray.dir.x;
         float tmax = (node->maxx_ - ray.origin.x) / ray.dir.x;
@@ -125,8 +125,8 @@ __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimiti
             tmin = tmax;
             tmax = tmp;
         }
-        local_tmin = tmin;
-        local_tmax = tmax;
+        local_tmin = MAX(local_tmin, tmin);
+        local_tmax = MIN(local_tmax, tmax);
     }
     if (ray.dir.y != 0.f) {
         float tmin = (node->miny_ - ray.origin.y) / ray.dir.y;
@@ -136,19 +136,19 @@ __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimiti
             tmin = tmax;
             tmax = tmp;
         }
-        local_tmin = MIN(local_tmin, tmin);
-        local_tmax = MAX(local_tmax, tmax);
+        local_tmin = MAX(local_tmin, tmin);
+        local_tmax = MIN(local_tmax, tmax);
     }
     if (ray.dir.z != 0.f) {
-        float tmin = (node->miny_ - ray.origin.z) / ray.dir.z;
-        float tmax = (node->maxy_ - ray.origin.z) / ray.dir.z;
+        float tmin = (node->minz_ - ray.origin.z) / ray.dir.z;
+        float tmax = (node->maxz_ - ray.origin.z) / ray.dir.z;
         if (tmin > tmax) {
             float tmp = tmin;
             tmin = tmax;
             tmax = tmp;
         }
-        local_tmin = MIN(local_tmin, tmin);
-        local_tmax = MAX(local_tmax, tmax);
+        local_tmin = MAX(local_tmin, tmin);
+        local_tmax = MIN(local_tmax, tmax);
     }
     if (local_tmin > local_tmax || local_tmin > ray.tmax || local_tmax < ray.tmin) return nullptr;
     Object *ret = TraceRay(node->left_son_, ray, attr);

@@ -16,20 +16,14 @@ private:
     int height_;
     uint spp_ = 5;
     uint8_t max_recursion_depth_ = 5;
-    // Float4* render_target_gpu_handle_;
     uint8_t* output_buffer_gpu_handle_;
 
     MotionalCamera* camera_;
     MotionalCamera* camera_gpu_handle_;
 
     std::vector<Material*> materials_;
-    // Material** materials_gpu_handle_;
-    std::map<void*, void*> materials_cpu_handle_to_gpu_handle_;
 
-    std::vector<Object*> scene_;
-    std::vector<Object*> scene_tmp_buffer_;
-    Object** scene_gpu_handle_;
-    std::map<void*, void*> object_cpu_handle_to_gpu_handle_;
+    std::vector<Object*> objs_;
 
     curandState* d_rng_states_;
 

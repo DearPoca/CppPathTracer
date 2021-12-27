@@ -83,12 +83,24 @@ int main(int argc, char **argv) {
         Object *earth = new Object();
         earth->material_ = materials[0];
         path_tracer->AddObject(earth);
+        earth->maxx_ = earth->center_.x + earth->radius_;
+        earth->maxy_ = earth->center_.y + earth->radius_;
+        earth->maxz_ = earth->center_.z + earth->radius_;
+        earth->minx_ = earth->center_.x - earth->radius_;
+        earth->miny_ = earth->center_.y - earth->radius_;
+        earth->minz_ = earth->center_.z - earth->radius_;
 
         for (int i = -150; i < 150; i += 3) {
             Object *ball = new Object();
             ball->material_ = materials[rand() % 20];
             ball->center_ = Float4(poca_mus::Random() * 300.f - 150.f, 1.f + poca_mus::Random() * 5.f, float(i));
             ball->radius_ = poca_mus::Random() * 5.f + 1.f;
+            ball->maxx_ = ball->center_.x + ball->radius_;
+            ball->maxy_ = ball->center_.y + ball->radius_;
+            ball->maxz_ = ball->center_.z + ball->radius_;
+            ball->minx_ = ball->center_.x - ball->radius_;
+            ball->miny_ = ball->center_.y - ball->radius_;
+            ball->minz_ = ball->center_.z - ball->radius_;
             path_tracer->AddObject(ball);
         }
     }
@@ -96,7 +108,7 @@ int main(int argc, char **argv) {
     path_tracer->AllocateGpuMemory();
     path_tracer->SetSamplePerPixel(10);
 
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; i < 10; ++i) {
         camera->SetOrigin(time_to_ori_x(i), time_to_ori_y(i), time_to_ori_z(i));
         camera->SetLookAt(time_to_look_at_x(i), time_to_look_at_y(i), time_to_look_at_z(i));
         path_tracer->DispatchRay(buf, buf_size, i);

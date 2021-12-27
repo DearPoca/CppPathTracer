@@ -25,13 +25,16 @@ public:
 
 namespace poca_mus {
     // 根据物体指针数组建立BVH树, 返回根节点GPU Handle, 此操作会改变原数组
-    BVHNode *BuildBVH(std::vector<Object *> & objs);
+    BVHNode *BuildBVH(std::vector<Object *> &objs);
 
-    // 根据物体指针数组更新BVH信息
-    void UpdateBVHInfo(std::vector<Object *> & objs);
+    // 更新物体信息
+    void UpdateObjectInfo(Object *obj);
+
+    // 更新材质信息
+    void UpdateMaterialInfo(Material *mat);
 
     // 在GPU中寻找距离光线最近的物体, 若未击中物体则返回nullptr
-    __device__ Object *TraceRay(BVHNode * node, Ray & ray, ProceduralPrimitiveAttributes & attr);
-}
+    __device__ Object *TraceRay(BVHNode *node, Ray &ray, ProceduralPrimitiveAttributes &attr);
+}  // namespace poca_mus
 
 #endif  // PATH_TRACER_BVH_H

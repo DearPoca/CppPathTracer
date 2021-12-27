@@ -3,14 +3,16 @@
 #include <iostream>
 #include <utility>
 
+#include "bvh.h"
 #include "object.h"
 #include "path_tracer.h"
 
 struct PathTracerparams {
     uint width, height;
 
-    Object** scene;
-    uint scene_size;
+    // Object** scene;
+    // uint scene_size;
+    BVHNode* bvh_root;
 
     uint spp;
     uint max_recursion_depth;
@@ -19,8 +21,6 @@ struct PathTracerparams {
     uint8_t* output_buffer_gpu_handle;
 
     curandState* d_rng_states;
-
-    BVHNode* bvh_root;
 };
 
 __device__ void MissShader(Ray& ray, RayPayload& payload) {
@@ -31,7 +31,7 @@ __device__ void MissShader(Ray& ray, RayPayload& payload) {
     payload.recursion_depth = MAX_RECURSION_DEPTH;
 }
 
-void PathTracer::AddObject(Object* obj) { scene_.push_back(obj); }
+void PathTracer::AddObject(Object* obj) { objs_.push_back(obj); }
 
 __device__ void TraceRay(PathTracerparams& params, Ray& ray, RayPayload& payload) {
     poca_mus::Normalize(ray.dir);
@@ -87,10 +87,10 @@ __global__ void SamplePixel(PathTracerparams params) {
 }
 
 void PathTracer::AllocateGpuMemory() {
-    bvh_root_ = poca_mus::BuildBVH(scene_);
+    bvh_root_ = poca_mus::BuildBVH(objs_);
     // cudaMalloc((void**)&render_target_gpu_handle_, width_ * height_ * sizeof(Float4));
-    // cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
-    // cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera));
+    cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
+    cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera));
     // cudaMalloc((void**)&materials_gpu_handle_, sizeof(Material*) * materials_.size());
     // cudaMalloc((void**)&scene_gpu_handle_, sizeof(Object*) * scene_.size());
     // for (int i = 0; i < materials_.size(); ++i) {
@@ -106,7 +106,7 @@ void PathTracer::AllocateGpuMemory() {
     //     ObjectMemCpyToGpu(scene_[i], cur, materials_cpu_handle_to_gpu_handle_);
     //     cudaMemcpy(&(scene_gpu_handle_[i]), &cur, sizeof(Object*), cudaMemcpyHostToDevice);
     // }
-    // cudaMalloc(reinterpret_cast<void**>(&d_rng_states_), height_ * width_ * sizeof(curandState));
+    cudaMalloc(reinterpret_cast<void**>(&d_rng_states_), height_ * width_ * sizeof(curandState));
 }
 
 void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
@@ -124,8 +124,9 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     params.width = width_;
     params.height = height_;
 
-    params.scene = scene_gpu_handle_;
-    params.scene_size = scene_.size();
+    // params.scene = scene_gpu_handle_;
+    // params.scene_size = scene_.size();
+    params.bvh_root = bvh_root_;
 
     params.spp = spp_;
     params.max_recursion_depth = max_recursion_depth_;
@@ -135,7 +136,6 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
 
     params.d_rng_states = d_rng_states_;
 
-    params.bvh_root = bvh_root_;
 
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
