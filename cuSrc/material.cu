@@ -75,45 +75,41 @@ __device__ void PlasticHitShader(Material &self, Float4 &position, Float4 &norma
 __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
                                RayPayload &payload) {
     float x_1 = curand_uniform(payload.d_rng_states), x_2 = curand_uniform(payload.d_rng_states);
-    float s = self.smoothness_;
-    float alpha = pow(1000.0f, s);
+    float alpha = pow(1000.0f, self.smoothness_);
     float z = pow(x_1, 1.0 / alpha);
     float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
     Float4 localRay = Float4(r * cos(phi), r * sin(phi), z);
-    // end_common
 
-    Float4 outward_normal;
     Float4 reflected = poca_mus::Reflect(in_ray_dir, normal);
     float ni_over_nt;
     Float4 refracted;
     float reflect_prob;
     float cosine;
     if (poca_mus::Dot(in_ray_dir, normal) > 0) {
-        outward_normal = -normal;
-        ni_over_nt = self.reflectivity_;
-        cosine = self.reflectivity_ * poca_mus::Dot(in_ray_dir, normal);
+        ni_over_nt = self.refractive_index_;
+        cosine = self.refractive_index_ * poca_mus::Dot(in_ray_dir, normal);
     } else {
-        outward_normal = normal;
-        ni_over_nt = 1.0 / self.reflectivity_;
+        ni_over_nt = 1.f / self.refractive_index_;
         cosine = -poca_mus::Dot(in_ray_dir, normal);
     }
-    if (poca_mus::CanRefract(in_ray_dir, outward_normal, ni_over_nt, refracted)) {
-        reflect_prob = poca_mus::Schlick(cosine, self.reflectivity_);
+    if (poca_mus::CanRefract(in_ray_dir, normal, ni_over_nt, refracted)) {
+        reflect_prob = poca_mus::Schlick(cosine, self.refractive_index_);
     } else {
         reflect_prob = 1.0;
     }
-    if (curand_uniform(payload.d_rng_states) < reflect_prob)
+    if (curand_uniform(payload.d_rng_states) < reflect_prob) {
         payload.bounce_dir = poca_mus::ToWorld(localRay, reflected);
-    else
+    } else {
         payload.bounce_dir = poca_mus::ToWorld(localRay, refracted);
+    }
     payload.attenuation = self.Kd_;
 }
 
 __COMMON_GPU_CPU__ Material::Material() {
     type_ = Diffuse;
     Kd_ = Float4(0.9, 0.9, 0.9);
-    refraction_ = 0.f;
-    emitIntensity_ = 0.f;
+    refractive_index_ = 0.f;
+    emit_intensity_ = 0.f;
     smoothness_ = 0.f;
     reflectivity_ = 0.f;
 }

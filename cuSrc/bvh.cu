@@ -6,6 +6,11 @@
 #include "path_tracing_common.h"
 #include "ray_tracing_math.hpp"
 
+BVHNode *bvh_cpu_root_handle;
+std::map<BVHNode *, BVHNode *> bvh_node_cpu_handle_to_gpu_handle;
+std::map<Object *, Object *> object_cpu_handle_to_gpu_handle;
+std::map<Material *, Material *> materials_cpu_handle_to_gpu_handle;
+
 BVHNode *Divide(std::vector<Object *> &objs, int l, int r) {
     if (l >= r) return nullptr;
     BVHNode *ret = new BVHNode;
@@ -61,10 +66,6 @@ BVHNode *Divide(std::vector<Object *> &objs, int l, int r) {
 
 BVHNode *BuildBVHInCpu(std::vector<Object *> &objs) { return Divide(objs, 0, objs.size()); }
 
-std::map<BVHNode *, BVHNode *> bvh_node_cpu_handle_to_gpu_handle;
-std::map<Object *, Object *> object_cpu_handle_to_gpu_handle;
-std::map<Material *, Material *> materials_cpu_handle_to_gpu_handle;
-
 // 根据BVH结点CPU指针递归的分配GPU空间, 返回结点的GPU指针
 BVHNode *BuildBVHInGpu(BVHNode *node_cpu_handle) {
     if (node_cpu_handle == nullptr) return nullptr;
@@ -92,44 +93,101 @@ BVHNode *BuildBVHInGpu(BVHNode *node_cpu_handle) {
     BVHNode *ret;
     cudaMalloc((void **)&ret, sizeof(BVHNode));
     cudaMemcpy((void *)ret, (void *)&tmp, sizeof(BVHNode), cudaMemcpyHostToDevice);
+    bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle] = ret;
     return ret;
 }
 
 BVHNode *poca_mus::BuildBVH(std::vector<Object *> &objs) {
-    BVHNode *bvh_cpu_root = BuildBVHInCpu(objs);
-    return BuildBVHInGpu(bvh_cpu_root);
+    bvh_cpu_root_handle = BuildBVHInCpu(objs);
+    return BuildBVHInGpu(bvh_cpu_root_handle);
 }
 
-__device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimitiveAttributes &attr) {
-    if (node == nullptr) return nullptr;
-    if (node->is_object_) {
-        if (node->obj_->IntersectionTest(*node->obj_, ray, attr))
-            return node->obj_;
-        else
-            return nullptr;
+void UpdateBVHNode(BVHNode *node_cpu_handle) {
+    if (node_cpu_handle == nullptr) return;
+    if (node_cpu_handle->is_object_) {
+        node_cpu_handle->AABB_max_ = node_cpu_handle->obj_->AABB_max_;
+        node_cpu_handle->AABB_min_ = node_cpu_handle->obj_->AABB_min_;
+    } else {
+        UpdateBVHNode(node_cpu_handle->left_son_);
+        UpdateBVHNode(node_cpu_handle->right_son_);
+        node_cpu_handle->AABB_max_.x =
+            MAX(node_cpu_handle->left_son_->AABB_max_.x, node_cpu_handle->right_son_->AABB_max_.x);
+        node_cpu_handle->AABB_max_.y =
+            MAX(node_cpu_handle->left_son_->AABB_max_.y, node_cpu_handle->right_son_->AABB_max_.y);
+        node_cpu_handle->AABB_max_.z =
+            MAX(node_cpu_handle->left_son_->AABB_max_.z, node_cpu_handle->right_son_->AABB_max_.z);
+        node_cpu_handle->AABB_min_.x =
+            MIN(node_cpu_handle->left_son_->AABB_min_.x, node_cpu_handle->right_son_->AABB_min_.x);
+        node_cpu_handle->AABB_min_.y =
+            MIN(node_cpu_handle->left_son_->AABB_min_.y, node_cpu_handle->right_son_->AABB_min_.y);
+        node_cpu_handle->AABB_min_.z =
+            MIN(node_cpu_handle->left_son_->AABB_min_.z, node_cpu_handle->right_son_->AABB_min_.z);
+        BVHNode tmp;
+        BVHNode *node_gpu_handle = bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle];
+        cudaMemcpy((void *)&tmp, (void *)node_gpu_handle, sizeof(BVHNode), cudaMemcpyDeviceToHost);
+        tmp.AABB_max_ = node_cpu_handle->AABB_max_;
+        tmp.AABB_min_ = node_cpu_handle->AABB_min_;
+        cudaMemcpy((void *)node_gpu_handle, (void *)&tmp, sizeof(BVHNode), cudaMemcpyHostToDevice);
     }
-    float local_tmin = -3e+30f, local_tmax = 3e+30f;
-    if (ray.dir.x != 0.f) {
-        float t0 = (node->AABB_min_.x - ray.origin.x) / ray.dir.x;
-        float t1 = (node->AABB_max_.x - ray.origin.x) / ray.dir.x;
-        local_tmin = MAX(local_tmin, MIN(t0, t1));
-        local_tmax = MIN(local_tmax, MAX(t0, t1));
+}
+
+void poca_mus::UpdateBVHInfos() {
+    for (auto mat : materials_cpu_handle_to_gpu_handle) {
+        MaterialMemCpyToGpu(mat.first, mat.second);
     }
-    if (ray.dir.y != 0.f) {
-        float t0 = (node->AABB_min_.y - ray.origin.y) / ray.dir.y;
-        float t1 = (node->AABB_max_.y - ray.origin.y) / ray.dir.y;
-        local_tmin = MAX(local_tmin, MIN(t0, t1));
-        local_tmax = MIN(local_tmax, MAX(t0, t1));
+    for (auto obj : object_cpu_handle_to_gpu_handle) {
+        obj.first->UpdataAABB();
+        ObjectMemCpyToGpu(obj.first, obj.second, materials_cpu_handle_to_gpu_handle[obj.first->material_]);
     }
-    if (ray.dir.z != 0.f) {
-        float t0 = (node->AABB_min_.z - ray.origin.z) / ray.dir.z;
-        float t1 = (node->AABB_max_.z - ray.origin.z) / ray.dir.z;
-        local_tmin = MAX(local_tmin, MIN(t0, t1));
-        local_tmax = MIN(local_tmax, MAX(t0, t1));
+    UpdateBVHNode(bvh_cpu_root_handle);
+}
+
+void poca_mus::ReleaseBVH() {
+    for (auto p : materials_cpu_handle_to_gpu_handle) {
+        cudaFree(p.second);
     }
-    if (local_tmin > local_tmax || local_tmin > ray.tmax || local_tmax < ray.tmin) return nullptr;
-    Object *ret = TraceRay(node->left_son_, ray, attr);
-    Object *right_son = TraceRay(node->right_son_, ray, attr);
-    if (right_son != nullptr) ret = right_son;
+    for (auto p : object_cpu_handle_to_gpu_handle) {
+        cudaFree(p.second);
+    }
+    for (auto p : bvh_node_cpu_handle_to_gpu_handle) {
+        cudaFree(p.second);
+        delete p.first;
+    }
+}
+
+__device__ Object *poca_mus::TraceRay(BVHNode *root, Ray &ray, ProceduralPrimitiveAttributes &attr) {
+    BVHNode *stack[512];
+    int top = 0;
+    stack[top++] = root;
+    Object *ret = nullptr;
+    while (top > 0) {
+        BVHNode *node = stack[--top];
+        if (node == nullptr) continue;
+        if (node->is_object_) {
+            if (node->obj_->IntersectionTest(*node->obj_, ray, attr)) ret = node->obj_;
+        }
+        float local_tmin = -3e+30f, local_tmax = 3e+30f;
+        if (ray.dir.x != 0.f) {
+            float t0 = (node->AABB_min_.x - ray.origin.x) / ray.dir.x;
+            float t1 = (node->AABB_max_.x - ray.origin.x) / ray.dir.x;
+            local_tmin = MAX(local_tmin, MIN(t0, t1));
+            local_tmax = MIN(local_tmax, MAX(t0, t1));
+        }
+        if (ray.dir.y != 0.f) {
+            float t0 = (node->AABB_min_.y - ray.origin.y) / ray.dir.y;
+            float t1 = (node->AABB_max_.y - ray.origin.y) / ray.dir.y;
+            local_tmin = MAX(local_tmin, MIN(t0, t1));
+            local_tmax = MIN(local_tmax, MAX(t0, t1));
+        }
+        if (ray.dir.z != 0.f) {
+            float t0 = (node->AABB_min_.z - ray.origin.z) / ray.dir.z;
+            float t1 = (node->AABB_max_.z - ray.origin.z) / ray.dir.z;
+            local_tmin = MAX(local_tmin, MIN(t0, t1));
+            local_tmax = MIN(local_tmax, MAX(t0, t1));
+        }
+        if (local_tmin > local_tmax || local_tmin > ray.tmax || local_tmax < ray.tmin) continue;
+        stack[top++] = node->left_son_;
+        stack[top++] = node->right_son_;
+    }
     return ret;
 }

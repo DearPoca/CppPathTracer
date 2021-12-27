@@ -23,8 +23,8 @@ private:
 public:
     MaterialType type_;
     Float4 Kd_;
-    float refraction_;
-    float emitIntensity_;
+    float refractive_index_;
+    float emit_intensity_;
     float smoothness_;
     float reflectivity_;
 

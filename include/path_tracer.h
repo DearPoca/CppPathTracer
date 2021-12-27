@@ -15,7 +15,7 @@ private:
     int width_;
     int height_;
     uint spp_ = 5;
-    uint8_t max_recursion_depth_ = 5;
+    uint8_t max_recursion_depth_ = 12;
     uint8_t* output_buffer_gpu_handle_;
 
     MotionalCamera* camera_;

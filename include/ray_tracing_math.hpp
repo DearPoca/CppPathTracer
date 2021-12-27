@@ -220,7 +220,7 @@ namespace poca_mus {
         return r0 + (1 - r0) * pow(1 - cosine, 5);
     }
 
-    __COMMON_GPU_CPU_INLINE__ bool CanRefract(Float4 v, Float4 n, float ni_over_nt, Float4 refracted) {
+    __COMMON_GPU_CPU_INLINE__ bool CanRefract(Float4 v, Float4 n, float ni_over_nt, Float4 &refracted) {
         Float4 uv = GetNormalizeVec(v);
         float dt = Dot(uv, n);
         float discriminant = 1.0 - ni_over_nt * (1 - dt * dt);

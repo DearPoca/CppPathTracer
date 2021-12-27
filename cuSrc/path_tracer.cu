@@ -128,6 +128,7 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     // for (auto ptr_pair : object_cpu_handle_to_gpu_handle_) {
     //     ObjectMemCpyToGpu((Object*)ptr_pair.first, (Object*)ptr_pair.second, materials_cpu_handle_to_gpu_handle_);
     // }
+    poca_mus::UpdateBVHInfos();
 
     PathTracerparams params;
     params.width = width_;
