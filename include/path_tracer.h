@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "bvh.h"
 #include "motional_camera.h"
 #include "object.h"
 #include "path_tracing_common.h"
@@ -31,6 +32,8 @@ private:
     std::map<void*, void*> object_cpu_handle_to_gpu_handle_;
 
     curandState* d_rng_states_;
+
+    BVHNode* bvh_root_;
 
 public:
     void AddMeterial(Material* material);

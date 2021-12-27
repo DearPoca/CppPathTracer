@@ -21,7 +21,7 @@ public:
 
     bool is_object_;  // 1表示当前bvh结点下有一个物体
     Object *obj_;
-}
+};
 
 namespace poca_mus {
     // 根据物体指针数组建立BVH树, 返回根节点GPU Handle, 此操作会改变原数组

@@ -7,12 +7,13 @@
 #include "ray_tracing_math.hpp"
 
 BVHNode *BuildBVHInCpu(std::vector<Object *> &objs) {
-    auto Divide = [&](int l, int r) -> (Object *) {
+    using NodePtr = BVHNode *;
+    auto Divide = [&](auto &&self, int l, int r) -> NodePtr {
         if (l >= r) return nullptr;
         BVHNode *ret = new BVHNode;
         if (l == r - 1) {
-            ret->left_son = nullptr;
-            ret->right_soon = nullptr;
+            ret->left_son_ = nullptr;
+            ret->right_son_ = nullptr;
             ret->minx_ = objs[l]->minx_;
             ret->miny_ = objs[l]->miny_;
             ret->minz_ = objs[l]->minz_;
@@ -55,8 +56,8 @@ BVHNode *BuildBVHInCpu(std::vector<Object *> &objs) {
             });
         }
         int mid = (l + r) / 2;
-        ret->left_son = Divide(l, mid);
-        ret->right_soon = Divede(mid, r);
+        ret->left_son_ = self(self, l, mid);
+        ret->right_son_ = self(self, mid, r);
         ret->minx_ = minx;
         ret->miny_ = miny;
         ret->minz_ = minz;
@@ -67,7 +68,7 @@ BVHNode *BuildBVHInCpu(std::vector<Object *> &objs) {
         ret->obj_ = nullptr;
         return ret;
     };
-    return Divide(0, objs.size());
+    return Divide(Divide, 0, objs.size());
 }
 
 std::map<BVHNode *, BVHNode *> bvh_node_cpu_handle_to_gpu_handle;
@@ -93,7 +94,7 @@ BVHNode *BuildBVHInGpu(BVHNode *node_cpu_handle) {
             materials_cpu_handle_to_gpu_handle[node_cpu_handle->obj_->material_] = mat_gpu_handle;
             MaterialMemCpyToGpu(node_cpu_handle->obj_->material_, mat_gpu_handle);
         }
-        object_cpu_handle_to_gpu_handle_[node_cpu_handle->obj_] = obj_gpu_handle;
+        object_cpu_handle_to_gpu_handle[node_cpu_handle->obj_] = obj_gpu_handle;
         ObjectMemCpyToGpu(node_cpu_handle->obj_, obj_gpu_handle,
                           materials_cpu_handle_to_gpu_handle[node_cpu_handle->obj_->material_]);
         tmp.obj_ = obj_gpu_handle;
@@ -110,17 +111,17 @@ BVHNode *poca_mus::BuildBVH(std::vector<Object *> &objs) {
 }
 
 __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimitiveAttributes &attr) {
-    if (node == nullptr) return node;
+    if (node == nullptr) return nullptr;
     if (node->is_object_) {
-        if (node->obj_->IntersectionTest(node->obj_, ray, attr))
+        if (node->obj_->IntersectionTest(*node->obj_, ray, attr))
             return node->obj_;
         else
             return nullptr;
     }
     float local_tmin, local_tmax;
     if (ray.dir.x != 0.f) {
-        float tmin = (node->minx - ray.origin.x) / ray.dir.x;
-        float tmax = (node->maxx - ray.origin.x) / ray.dir.x;
+        float tmin = (node->minx_ - ray.origin.x) / ray.dir.x;
+        float tmax = (node->maxx_ - ray.origin.x) / ray.dir.x;
         if (tmin > tmax) {
             float tmp = tmin;
             tmin = tmax;
@@ -130,8 +131,8 @@ __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimiti
         local_tmax = tmax;
     }
     if (ray.dir.y != 0.f) {
-        float tmin = (node->miny - ray.origin.y) / ray.dir.y;
-        float tmax = (node->maxy - ray.origin.y) / ray.dir.y;
+        float tmin = (node->miny_ - ray.origin.y) / ray.dir.y;
+        float tmax = (node->maxy_ - ray.origin.y) / ray.dir.y;
         if (tmin > tmax) {
             float tmp = tmin;
             tmin = tmax;
@@ -141,8 +142,8 @@ __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimiti
         local_tmax = MAX(local_tmax, tmax);
     }
     if (ray.dir.z != 0.f) {
-        float tmin = (node->miny - ray.origin.z) / ray.dir.z;
-        float tmax = (node->maxy - ray.origin.z) / ray.dir.z;
+        float tmin = (node->miny_ - ray.origin.z) / ray.dir.z;
+        float tmax = (node->maxy_ - ray.origin.z) / ray.dir.z;
         if (tmin > tmax) {
             float tmp = tmin;
             tmin = tmax;

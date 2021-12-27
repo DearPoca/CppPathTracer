@@ -19,6 +19,8 @@ struct PathTracerparams {
     uint8_t* output_buffer_gpu_handle;
 
     curandState* d_rng_states;
+
+    BVHNode* bvh_root;
 };
 
 __device__ void MissShader(Ray& ray, RayPayload& payload) {
@@ -33,11 +35,8 @@ void PathTracer::AddObject(Object* obj) { scene_.push_back(obj); }
 
 __device__ void TraceRay(PathTracerparams& params, Ray& ray, RayPayload& payload) {
     poca_mus::Normalize(ray.dir);
-    Object* closet_hit_obj = nullptr;
     ProceduralPrimitiveAttributes attr;
-    for (int i = 0; i < params.scene_size; ++i) {
-        if (params.scene[i]->IntersectionTest(*params.scene[i], ray, attr)) closet_hit_obj = params.scene[i];
-    }
+    Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
     if (closet_hit_obj != nullptr) {
         closet_hit_obj->ClosetHit(*closet_hit_obj, ray, payload, attr);
     } else {
@@ -88,37 +87,38 @@ __global__ void SamplePixel(PathTracerparams params) {
 }
 
 void PathTracer::AllocateGpuMemory() {
+    bvh_root_ = poca_mus::BuildBVH(scene_);
     // cudaMalloc((void**)&render_target_gpu_handle_, width_ * height_ * sizeof(Float4));
-    cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
-    cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera));
+    // cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
+    // cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera));
     // cudaMalloc((void**)&materials_gpu_handle_, sizeof(Material*) * materials_.size());
-    cudaMalloc((void**)&scene_gpu_handle_, sizeof(Object*) * scene_.size());
-    for (int i = 0; i < materials_.size(); ++i) {
-        Material* cur;
-        cudaMalloc((void**)&cur, sizeof(Material));
-        materials_cpu_handle_to_gpu_handle_[materials_[i]] = cur;
-        MaterialMemCpyToGpu(materials_[i], cur);
-    }
-    for (int i = 0; i < scene_.size(); ++i) {
-        Object* cur;
-        cudaMalloc((void**)&cur, sizeof(Object));
-        object_cpu_handle_to_gpu_handle_[scene_[i]] = cur;
-        ObjectMemCpyToGpu(scene_[i], cur, materials_cpu_handle_to_gpu_handle_);
-        cudaMemcpy(&(scene_gpu_handle_[i]), &cur, sizeof(Object*), cudaMemcpyHostToDevice);
-    }
-    cudaMalloc(reinterpret_cast<void**>(&d_rng_states_), height_ * width_ * sizeof(curandState));
+    // cudaMalloc((void**)&scene_gpu_handle_, sizeof(Object*) * scene_.size());
+    // for (int i = 0; i < materials_.size(); ++i) {
+    //     Material* cur;
+    //     cudaMalloc((void**)&cur, sizeof(Material));
+    //     materials_cpu_handle_to_gpu_handle_[materials_[i]] = cur;
+    //     MaterialMemCpyToGpu(materials_[i], cur);
+    // }
+    // for (int i = 0; i < scene_.size(); ++i) {
+    //     Object* cur;
+    //     cudaMalloc((void**)&cur, sizeof(Object));
+    //     object_cpu_handle_to_gpu_handle_[scene_[i]] = cur;
+    //     ObjectMemCpyToGpu(scene_[i], cur, materials_cpu_handle_to_gpu_handle_);
+    //     cudaMemcpy(&(scene_gpu_handle_[i]), &cur, sizeof(Object*), cudaMemcpyHostToDevice);
+    // }
+    // cudaMalloc(reinterpret_cast<void**>(&d_rng_states_), height_ * width_ * sizeof(curandState));
 }
 
 void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     camera_->Updata();
     cudaMemcpy(camera_gpu_handle_, camera_, sizeof(MotionalCamera), cudaMemcpyHostToDevice);
 
-    for (auto ptr_pair : materials_cpu_handle_to_gpu_handle_) {
-        MaterialMemCpyToGpu((Material*)ptr_pair.first, (Material*)ptr_pair.second);
-    }
-    for (auto ptr_pair : object_cpu_handle_to_gpu_handle_) {
-        ObjectMemCpyToGpu((Object*)ptr_pair.first, (Object*)ptr_pair.second, materials_cpu_handle_to_gpu_handle_);
-    }
+    // for (auto ptr_pair : materials_cpu_handle_to_gpu_handle_) {
+    //     MaterialMemCpyToGpu((Material*)ptr_pair.first, (Material*)ptr_pair.second);
+    // }
+    // for (auto ptr_pair : object_cpu_handle_to_gpu_handle_) {
+    //     ObjectMemCpyToGpu((Object*)ptr_pair.first, (Object*)ptr_pair.second, materials_cpu_handle_to_gpu_handle_);
+    // }
 
     PathTracerparams params;
     params.width = width_;
@@ -134,6 +134,8 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
 
     params.d_rng_states = d_rng_states_;
+
+    params.bvh_root = bvh_root_;
 
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
