@@ -9,12 +9,8 @@
 class BVHNode {
 private:
 public:
-    float minx_;
-    float miny_;
-    float minz_;
-    float maxx_;
-    float maxy_;
-    float maxz_;
+    Float4 AABB_min_;
+    Float4 AABB_max_;
 
     BVHNode *left_son_;
     BVHNode *right_son_;

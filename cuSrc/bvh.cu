@@ -12,29 +12,25 @@ BVHNode *Divide(std::vector<Object *> &objs, int l, int r) {
     if (l == r - 1) {
         ret->left_son_ = nullptr;
         ret->right_son_ = nullptr;
-        ret->minx_ = objs[l]->minx_;
-        ret->miny_ = objs[l]->miny_;
-        ret->minz_ = objs[l]->minz_;
-        ret->maxx_ = objs[l]->maxx_;
-        ret->maxy_ = objs[l]->maxy_;
-        ret->maxz_ = objs[l]->maxz_;
+        ret->AABB_min_ = objs[l]->AABB_min_;
+        ret->AABB_max_ = objs[l]->AABB_max_;
         ret->is_object_ = true;
         ret->obj_ = objs[l];
         return ret;
     }
-    float minx = objs[l]->minx_;
-    float miny = objs[l]->miny_;
-    float minz = objs[l]->minz_;
-    float maxx = objs[l]->maxx_;
-    float maxy = objs[l]->maxy_;
-    float maxz = objs[l]->maxz_;
+    float minx = objs[l]->AABB_min_.x;
+    float miny = objs[l]->AABB_min_.y;
+    float minz = objs[l]->AABB_min_.z;
+    float maxx = objs[l]->AABB_max_.x;
+    float maxy = objs[l]->AABB_max_.y;
+    float maxz = objs[l]->AABB_max_.z;
     for (int i = l + 1; i < r; ++i) {
-        minx = MIN(minx, objs[i]->minx_);
-        miny = MIN(miny, objs[i]->miny_);
-        minz = MIN(minz, objs[i]->minz_);
-        maxx = MAX(maxx, objs[i]->maxx_);
-        maxy = MAX(maxy, objs[i]->maxy_);
-        maxz = MAX(maxz, objs[i]->maxz_);
+        minx = MIN(minx, objs[i]->AABB_min_.x);
+        miny = MIN(miny, objs[i]->AABB_min_.y);
+        minz = MIN(minz, objs[i]->AABB_min_.z);
+        maxx = MAX(maxx, objs[i]->AABB_max_.x);
+        maxy = MAX(maxy, objs[i]->AABB_max_.y);
+        maxz = MAX(maxz, objs[i]->AABB_max_.z);
     }
 
     float span_x = maxx - minx;
@@ -42,26 +38,22 @@ BVHNode *Divide(std::vector<Object *> &objs, int l, int r) {
     float span_z = maxz - minz;
     if (span_x > span_y && span_x > span_z) {
         std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
-            return (a->minx_ + a->maxx_) / 2 < (b->minx_ + b->maxx_) / 2;
+            return (a->AABB_min_.x + a->AABB_max_.x) / 2 < (b->AABB_min_.x + b->AABB_max_.x) / 2;
         });
     } else if (span_y > span_x && span_y > span_z) {
         std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
-            return (a->miny_ + a->maxy_) / 2 < (b->miny_ + b->maxy_) / 2;
+            return (a->AABB_min_.y + a->AABB_max_.y) / 2 < (b->AABB_min_.y + b->AABB_max_.y) / 2;
         });
     } else {
         std::sort(objs.begin() + l, objs.begin() + r, [](const Object *a, const Object *b) {
-            return (a->minz_ + a->maxz_) / 2 < (b->minz_ + b->maxz_) / 2;
+            return (a->AABB_min_.z + a->AABB_max_.z) / 2 < (b->AABB_min_.z + b->AABB_max_.z) / 2;
         });
     }
     int mid = (l + r) / 2;
     ret->left_son_ = Divide(objs, l, mid);
     ret->right_son_ = Divide(objs, mid, r);
-    ret->minx_ = minx;
-    ret->miny_ = miny;
-    ret->minz_ = minz;
-    ret->maxx_ = maxx;
-    ret->maxy_ = maxy;
-    ret->maxz_ = maxz;
+    ret->AABB_min_ = Float4(minx, miny, minz);
+    ret->AABB_max_ = Float4(maxx, maxy, maxz);
     ret->is_object_ = false;
     ret->obj_ = nullptr;
     return ret;
@@ -118,37 +110,22 @@ __device__ Object *poca_mus::TraceRay(BVHNode *node, Ray &ray, ProceduralPrimiti
     }
     float local_tmin = -3e+30f, local_tmax = 3e+30f;
     if (ray.dir.x != 0.f) {
-        float tmin = (node->minx_ - ray.origin.x) / ray.dir.x;
-        float tmax = (node->maxx_ - ray.origin.x) / ray.dir.x;
-        if (tmin > tmax) {
-            float tmp = tmin;
-            tmin = tmax;
-            tmax = tmp;
-        }
-        local_tmin = MAX(local_tmin, tmin);
-        local_tmax = MIN(local_tmax, tmax);
+        float t0 = (node->AABB_min_.x - ray.origin.x) / ray.dir.x;
+        float t1 = (node->AABB_max_.x - ray.origin.x) / ray.dir.x;
+        local_tmin = MAX(local_tmin, MIN(t0, t1));
+        local_tmax = MIN(local_tmax, MAX(t0, t1));
     }
     if (ray.dir.y != 0.f) {
-        float tmin = (node->miny_ - ray.origin.y) / ray.dir.y;
-        float tmax = (node->maxy_ - ray.origin.y) / ray.dir.y;
-        if (tmin > tmax) {
-            float tmp = tmin;
-            tmin = tmax;
-            tmax = tmp;
-        }
-        local_tmin = MAX(local_tmin, tmin);
-        local_tmax = MIN(local_tmax, tmax);
+        float t0 = (node->AABB_min_.y - ray.origin.y) / ray.dir.y;
+        float t1 = (node->AABB_max_.y - ray.origin.y) / ray.dir.y;
+        local_tmin = MAX(local_tmin, MIN(t0, t1));
+        local_tmax = MIN(local_tmax, MAX(t0, t1));
     }
     if (ray.dir.z != 0.f) {
-        float tmin = (node->minz_ - ray.origin.z) / ray.dir.z;
-        float tmax = (node->maxz_ - ray.origin.z) / ray.dir.z;
-        if (tmin > tmax) {
-            float tmp = tmin;
-            tmin = tmax;
-            tmax = tmp;
-        }
-        local_tmin = MAX(local_tmin, tmin);
-        local_tmax = MIN(local_tmax, tmax);
+        float t0 = (node->AABB_min_.z - ray.origin.z) / ray.dir.z;
+        float t1 = (node->AABB_max_.z - ray.origin.z) / ray.dir.z;
+        local_tmin = MAX(local_tmin, MIN(t0, t1));
+        local_tmax = MIN(local_tmax, MAX(t0, t1));
     }
     if (local_tmin > local_tmax || local_tmin > ray.tmax || local_tmax < ray.tmin) return nullptr;
     Object *ret = TraceRay(node->left_son_, ray, attr);

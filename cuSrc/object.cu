@@ -32,9 +32,11 @@ __device__ void ClosetHit(Object &self, Ray &ray, RayPayload &payload, Procedura
     self.material_->EvalAttenuationAndCreateRay(*self.material_, attr.hit_pos, attr.normal, ray.dir, payload);
 }
 
-__COMMON_GPU_CPU__ Object::Object() : radius_(1000.f), center_(Float4(0.f, -1000.f, 0.f)) {
-    this->material_ = new Material;
+__COMMON_GPU_CPU__ void Object::UpdataAABB() {
+    this->AABB_max_ = this->center_ + Float4(this->radius_);
+    this->AABB_min_ = this->center_ - Float4(this->radius_);
 }
+
 __device__ FuncIntersectionTestPtr fp_intersection_sphere = SphereIntersectionTest;
 __device__ FuncClosetHitPtr fp_closet_hit = ClosetHit;
 

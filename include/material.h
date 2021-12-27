@@ -10,7 +10,8 @@ enum MaterialType
     Diffuse = 0,
     Plastic,
     Mirror,
-    Glass
+    Glass,
+    Count
 };
 
 #define FUNC_TYPE_DEFINE_MATERIAL                                                                           \

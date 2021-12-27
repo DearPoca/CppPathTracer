@@ -15,17 +15,14 @@ class Object {
 private:
 public:
     Material *material_;
-    __COMMON_GPU_CPU__ Object();
 
-    float minx_;
-    float miny_;
-    float minz_;
-    float maxx_;
-    float maxy_;
-    float maxz_;
+    Float4 AABB_min_;
+    Float4 AABB_max_;
 
     Float4 center_;
     float radius_;
+
+    __COMMON_GPU_CPU__ void UpdataAABB();
 
     FUNC_TYPE_DEFINE_INTERSECTION;
     FUNC_TYPE_DEFINE_CLOSET_HIT;

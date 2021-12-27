@@ -33,16 +33,16 @@ __device__ void MissShader(Ray& ray, RayPayload& payload) {
 
 void PathTracer::AddObject(Object* obj) { objs_.push_back(obj); }
 
-__device__ void TraceRay(PathTracerparams& params, Ray& ray, RayPayload& payload) {
-    poca_mus::Normalize(ray.dir);
-    ProceduralPrimitiveAttributes attr;
-    Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
-    if (closet_hit_obj != nullptr) {
-        closet_hit_obj->ClosetHit(*closet_hit_obj, ray, payload, attr);
-    } else {
-        MissShader(ray, payload);
-    }
-}
+// __device__ void TraceRay(PathTracerparams& params, Ray& ray, RayPayload& payload) {
+//     poca_mus::Normalize(ray.dir);
+//     ProceduralPrimitiveAttributes attr;
+//     Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
+//     if (closet_hit_obj != nullptr) {
+//         closet_hit_obj->ClosetHit(*closet_hit_obj, ray, payload, attr);
+//     } else {
+//         MissShader(ray, payload);
+//     }
+// }
 
 void PathTracer::AddMeterial(Material* material) { materials_.push_back(material); }
 
@@ -68,7 +68,16 @@ __global__ void SamplePixel(PathTracerparams params) {
         payload.d_rng_states = &params.d_rng_states[offset];
 
         while (payload.recursion_depth < params.max_recursion_depth) {
-            TraceRay(params, ray, payload);
+            poca_mus::Normalize(ray.dir);
+
+            ProceduralPrimitiveAttributes attr;
+            Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
+
+            if (closet_hit_obj != nullptr) {
+                closet_hit_obj->ClosetHit(*closet_hit_obj, ray, payload, attr);
+            } else {
+                MissShader(ray, payload);
+            }
 
             radiance += attenuation * payload.radiance;
             attenuation *= payload.attenuation;
@@ -76,8 +85,8 @@ __global__ void SamplePixel(PathTracerparams params) {
             ray.origin = payload.hit_pos;
             ray.dir = payload.bounce_dir;
             poca_mus::Normalize(ray.dir);
-            ray.tmin = 2e-6;
-            ray.tmax = 100000.f;
+            ray.tmin = 1e-4f;
+            ray.tmax = 1e10f;
             payload.recursion_depth++;
         }
     }
@@ -135,7 +144,6 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
 
     params.d_rng_states = d_rng_states_;
-
 
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
