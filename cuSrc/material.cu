@@ -80,11 +80,12 @@ __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal,
     float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
     Float4 localRay = Float4(r * cos(phi), r * sin(phi), z);
 
-    Float4 reflected = poca_mus::Reflect(in_ray_dir, normal);
     float ni_over_nt;
     Float4 refracted;
     float reflect_prob;
     float cosine;
+
+    poca_mus::Normalize(in_ray_dir);
     if (poca_mus::Dot(in_ray_dir, normal) > 0) {
         ni_over_nt = self.refractive_index_;
         cosine = self.refractive_index_ * poca_mus::Dot(in_ray_dir, normal);
@@ -98,6 +99,7 @@ __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal,
         reflect_prob = 1.0;
     }
     if (curand_uniform(payload.d_rng_states) < reflect_prob) {
+        Float4 reflected = poca_mus::Reflect(in_ray_dir, normal);
         payload.bounce_dir = poca_mus::ToWorld(localRay, reflected);
     } else {
         payload.bounce_dir = poca_mus::ToWorld(localRay, refracted);
