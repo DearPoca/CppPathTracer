@@ -8,29 +8,29 @@ int width = 1920;
 int height = 1080;
 
 float time_to_ori_x(int64_t t) {
-    float ft = float(t) / 10.f;
+    float ft = float(t) / 5.f;
     return 13.f + 0.3f * (ft - 5) * (ft - 15);
 }
 float time_to_ori_y(int64_t t) {
-    float ft = float(t) / 10.f;
+    float ft = float(t) / 5.f;
     return 3.f + 0.05 * ft * ft;
 }
 float time_to_ori_z(int64_t t) {
-    float ft = float(t) / 10.f;
+    float ft = float(t) / 5.f;
     return 13.f + 0.3f * (ft - 5) * (ft - 15);
     ;
 }
 
 float time_to_look_at_x(int64_t t) {
-    float ft = float(t) / 10.f;
+    float ft = float(t) / 5.f;
     return 3.f + 0.5 * ft * (ft - 20);
 }
 float time_to_look_at_y(int64_t t) {
-    float ft = float(t) / 10.f;
+    float ft = float(t) / 5.f;
     return 5.f + 0.02 * ft * ft;
 }
 float time_to_look_at_z(int64_t t) {
-    float ft = float(t) / 10.f;
+    float ft = float(t) / 5.f;
     return 3.f - 0.5 * ft * (ft - 20);
 }
 
@@ -90,17 +90,25 @@ int main(int argc, char **argv) {
         for (int i = -550; i < 550; i += 3) {
             Object *ball = new Object();
             ball->material_ = materials[rand() % 20];
-            ball->center_ = Float4(poca_mus::Random() * 300.f - 150.f, 1.f + poca_mus::Random() * 5.f, float(i));
             ball->radius_ = poca_mus::Random() * 5.f + 1.f;
+            ball->center_ = Float4(poca_mus::Random() * 300.f - 150.f, 1.f + poca_mus::Random() * 20.f, float(i));
             ball->UpdataAABB();
             path_tracer->AddObject(ball);
+            if (ball->material_->type_ == MaterialType::Glass && poca_mus::Random() > 0.5f) {
+                Object *inball = new Object();
+                inball->material_ = ball->material_;
+                inball->center_ = ball->center_;
+                inball->radius_ = 0.01f - ball->radius_;
+                inball->UpdataAABB();
+                path_tracer->AddObject(inball);
+            }
         }
     }
 
     path_tracer->AllocateGpuMemory();
-    path_tracer->SetSamplePerPixel(10);
+    path_tracer->SetSamplePerPixel(30);
 
-    for (int i = 0; i < 250; ++i) {
+    for (int i = 0; i < 120; ++i) {
         camera->SetOrigin(time_to_ori_x(i), time_to_ori_y(i), time_to_ori_z(i));
         camera->SetLookAt(time_to_look_at_x(i), time_to_look_at_y(i), time_to_look_at_z(i));
         path_tracer->DispatchRay(buf, buf_size, i);

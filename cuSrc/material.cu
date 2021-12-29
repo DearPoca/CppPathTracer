@@ -8,7 +8,6 @@ __device__ void DiffuseHitShader(Material &self, Float4 &position, Float4 &norma
     float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
     Float4 localRay = Float4(r * cos(phi), r * sin(phi), z);
 
-    payload.hit_pos = position;
     payload.bounce_dir = poca_mus::ToWorld(localRay, normal);
     float cosalpha = poca_mus::Dot(normal, payload.bounce_dir);
     if (cosalpha > 0.0f) {
@@ -16,6 +15,7 @@ __device__ void DiffuseHitShader(Material &self, Float4 &position, Float4 &norma
     } else {
         payload.attenuation = Float4(0.0, 0.0, 0.0);
     }
+    payload.hit_pos = position;
 }
 
 __device__ void MirrorHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
@@ -39,6 +39,7 @@ __device__ void MirrorHitShader(Material &self, Float4 &position, Float4 &normal
         payload.attenuation = Float4(0.0, 0.0, 0.0);
     }
     payload.bounce_dir = wo;
+    payload.hit_pos = position;
 }
 
 __device__ void PlasticHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
@@ -70,6 +71,7 @@ __device__ void PlasticHitShader(Material &self, Float4 &position, Float4 &norma
     } else {
         payload.attenuation = self.Kd_;
     }
+    payload.hit_pos = position;
 }
 
 __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
@@ -80,20 +82,24 @@ __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal,
     float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
     Float4 localRay = Float4(r * cos(phi), r * sin(phi), z);
 
-    float ni_over_nt;
+    Float4 outward_normal;
     Float4 refracted;
+    float ni_over_nt;
     float reflect_prob;
     float cosine;
 
     poca_mus::Normalize(in_ray_dir);
     if (poca_mus::Dot(in_ray_dir, normal) > 0) {
+        outward_normal = -normal;
         ni_over_nt = self.refractive_index_;
-        cosine = self.refractive_index_ * poca_mus::Dot(in_ray_dir, normal);
+        cosine = poca_mus::Dot(in_ray_dir, normal);
+        cosine = sqrt(1 - self.refractive_index_ * self.refractive_index_ * (1 - cosine * cosine));
     } else {
+        outward_normal = normal;
         ni_over_nt = 1.f / self.refractive_index_;
         cosine = -poca_mus::Dot(in_ray_dir, normal);
     }
-    if (poca_mus::CanRefract(in_ray_dir, normal, ni_over_nt, refracted)) {
+    if (poca_mus::CanRefract(in_ray_dir, outward_normal, ni_over_nt, refracted)) {
         reflect_prob = poca_mus::Schlick(cosine, self.refractive_index_);
     } else {
         reflect_prob = 1.0;
@@ -105,6 +111,7 @@ __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal,
         payload.bounce_dir = poca_mus::ToWorld(localRay, refracted);
     }
     payload.attenuation = self.Kd_;
+    payload.hit_pos = position;
 }
 
 __COMMON_GPU_CPU__ Material::Material() {

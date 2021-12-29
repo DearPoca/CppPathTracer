@@ -33,8 +33,8 @@ __device__ void ClosetHit(Object &self, Ray &ray, RayPayload &payload, Procedura
 }
 
 __COMMON_GPU_CPU__ void Object::UpdataAABB() {
-    this->AABB_max_ = this->center_ + Float4(this->radius_);
-    this->AABB_min_ = this->center_ - Float4(this->radius_);
+    this->AABB_max_ = this->center_ + Float4(ABS(this->radius_));
+    this->AABB_min_ = this->center_ - Float4(ABS(this->radius_));
 }
 
 __device__ FuncIntersectionTestPtr fp_intersection_sphere = SphereIntersectionTest;

@@ -44,7 +44,7 @@ void Mp4Recoder::InitConversion() {
 void Mp4Recoder::InitEncode() {
     AVCodec *encoder;
     AVDictionary *param = 0;
-    av_dict_set(&param, "preset", "superfast", 0);
+    // av_dict_set(&param, "preset", "superfast", 0);
 
     dst_fmt_ctx_ = avformat_alloc_context();
     if (!dst_fmt_ctx_) {

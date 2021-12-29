@@ -85,7 +85,7 @@ __global__ void SamplePixel(PathTracerparams params) {
             ray.origin = payload.hit_pos;
             ray.dir = payload.bounce_dir;
             poca_mus::Normalize(ray.dir);
-            ray.tmin = 1e-4f;
+            ray.tmin = 1e-5f;
             ray.tmax = 1e10f;
             payload.recursion_depth++;
         }

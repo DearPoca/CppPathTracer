@@ -223,7 +223,7 @@ namespace poca_mus {
     __COMMON_GPU_CPU_INLINE__ bool CanRefract(Float4 v, Float4 n, float ni_over_nt, Float4 &refracted) {
         Float4 uv = GetNormalizeVec(v);
         float dt = Dot(uv, n);
-        float discriminant = 1.0 - ni_over_nt * (1 - dt * dt);
+        float discriminant = 1.0 - ni_over_nt * ni_over_nt * (1 - dt * dt);
         if (discriminant > 0) {
             refracted = ni_over_nt * (uv - n * dt) - n * sqrt(discriminant);
             Normalize(refracted);
