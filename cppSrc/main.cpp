@@ -69,8 +69,8 @@ int main(int argc, char **argv) {
                     break;
                 case 3:
                     materials[i]->type_ = MaterialType::Glass;
-                    materials[i]->smoothness_ = poca_mus::Random() * 4 + 1.f;
-                    materials[i]->refractive_index_ = poca_mus::Random() * 2 + 1.2f;
+                    materials[i]->smoothness_ = poca_mus::Random() * 4 + 2.f;
+                    materials[i]->refractive_index_ = poca_mus::Random() * 2 + 1.01f;
                     materials[i]->Kd_ = 1.f;
                     break;
                 default:
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
     }
 
     path_tracer->AllocateGpuMemory();
-    path_tracer->SetSamplePerPixel(30);
+    path_tracer->SetSamplePerPixel(20);
 
     for (int i = 0; i < 120; ++i) {
         camera->SetOrigin(time_to_ori_x(i), time_to_ori_y(i), time_to_ori_z(i));

@@ -7,7 +7,7 @@
 #include "object.h"
 #include "path_tracer.h"
 
-struct PathTracerparams {
+struct PathTracerParams {
     uint width, height;
 
     // Object** scene;
@@ -18,9 +18,20 @@ struct PathTracerparams {
     uint max_recursion_depth;
 
     MotionalCamera* camera;
-    uint8_t* output_buffer_gpu_handle;
+    // uint8_t* output_buffer_gpu_handle;
+    float* depth_info_buffer;
+    Float4* normal_info_buffer;
+    Float4* render_target;
 
     curandState* d_rng_states;
+};
+
+struct DenoisingParams {
+    uint width, height;
+    float* depth_info_buffer;
+    Float4* normal_info_buffer;
+    Float4* render_target;
+    uint8_t* output_buffer;
 };
 
 __device__ void MissShader(Ray& ray, RayPayload& payload) {
@@ -28,12 +39,12 @@ __device__ void MissShader(Ray& ray, RayPayload& payload) {
     Float4 color1 = Float4(1.0, 1.0, 1.0);
     Float4 color2 = Float4(0.5, 0.7, 1.0);
     payload.radiance = (1.0 - t) * color1 + t * color2;
-    payload.recursion_depth = MAX_RECURSION_DEPTH;
+    payload.recursion_depth = MMAX_RECURSION_DEPTH;
 }
 
 void PathTracer::AddObject(Object* obj) { objs_.push_back(obj); }
 
-// __device__ void TraceRay(PathTracerparams& params, Ray& ray, RayPayload& payload) {
+// __device__ void TraceRay(PathTracerParams& params, Ray& ray, RayPayload& payload) {
 //     poca_mus::Normalize(ray.dir);
 //     IntersectionAttributes attr;
 //     Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
@@ -54,11 +65,13 @@ void PathTracer::ReSize(int width, int height) {
 }
 void PathTracer::SetSamplePerPixel(uint spp) { spp_ = spp; }
 
-__global__ void SamplePixel(PathTracerparams params) {
+__global__ void SamplePixel(PathTracerParams params) {
     uint x = blockIdx.x * blockDim.x + threadIdx.x;
     uint y = blockIdx.y * blockDim.y + threadIdx.y;
     uint offset = y * params.width + x;
     Float4 radiance = 0.0f;
+    Float4 normals = 0.0f;
+    float depth = 0.0f;
     curand_init(offset, 0, 0, &(params.d_rng_states[offset]));
     for (uint i = 0; i < params.spp; ++i) {
         Ray ray = params.camera->RayGen(x, y, &(params.d_rng_states[offset]));
@@ -66,6 +79,34 @@ __global__ void SamplePixel(PathTracerparams params) {
         Float4 attenuation = 1.0f;
         payload.recursion_depth = 0;
         payload.d_rng_states = &params.d_rng_states[offset];
+
+        // 首次光线要记录深度和法线信息
+        {
+            poca_mus::Normalize(ray.dir);
+
+            IntersectionAttributes attr;
+            Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
+
+            if (closet_hit_obj != nullptr) {
+                closet_hit_obj->ClosetHit(*closet_hit_obj, ray, payload, attr);
+            } else {
+                attr.normal = -ray.dir;
+                MissShader(ray, payload);
+            }
+
+            radiance += attenuation * payload.radiance;
+            attenuation *= payload.attenuation;
+
+            normals += attr.normal;
+            depth += ray.tmax;
+
+            ray.origin = payload.hit_pos;
+            ray.dir = payload.bounce_dir;
+            poca_mus::Normalize(ray.dir);
+            ray.tmin = BOUNCE_RAY_TMIN;
+            ray.tmax = DEFAULT_RAY_TMAX;
+            payload.recursion_depth++;
+        }
 
         while (payload.recursion_depth < params.max_recursion_depth) {
             poca_mus::Normalize(ray.dir);
@@ -85,20 +126,47 @@ __global__ void SamplePixel(PathTracerparams params) {
             ray.origin = payload.hit_pos;
             ray.dir = payload.bounce_dir;
             poca_mus::Normalize(ray.dir);
-            ray.tmin = 1e-5f;
-            ray.tmax = 1e10f;
+            ray.tmin = BOUNCE_RAY_TMIN;
+            ray.tmax = DEFAULT_RAY_TMAX;
             payload.recursion_depth++;
         }
     }
-    params.output_buffer_gpu_handle[offset * 3 + 0] = int(radiance.x / float(params.spp) * 255.99);
-    params.output_buffer_gpu_handle[offset * 3 + 1] = int(radiance.y / float(params.spp) * 255.99);
-    params.output_buffer_gpu_handle[offset * 3 + 2] = int(radiance.z / float(params.spp) * 255.99);
+    params.render_target[offset] = radiance / float(params.spp);
+    params.depth_info_buffer[offset] = depth / float(params.spp);
+    params.normal_info_buffer[offset] = normals / float(params.spp);
+    // params.output_buffer_gpu_handle[offset * 3 + 0] = int(radiance.x / float(params.spp) * 255.99);
+    // params.output_buffer_gpu_handle[offset * 3 + 1] = int(radiance.y / float(params.spp) * 255.99);
+    // params.output_buffer_gpu_handle[offset * 3 + 2] = int(radiance.z / float(params.spp) * 255.99);
+}
+
+__global__ void Denoising(DenoisingParams params) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int offset = y * params.width + x;
+    float weigh_sum = 0.0f;
+    Float4 radiance_sum = 0.0f;
+    int size = 0;
+    for (int i = -size; i <= size; ++i) {
+        for (int j = -size; j <= size; ++j) {
+            if (x + i < 0 || x + i >= params.width || y + j < 0 || y + j >= params.height) continue;
+            uint ref_offset = (y + j) * params.width + x + i;
+            float weight = poca_mus::Dot(params.normal_info_buffer[ref_offset], params.normal_info_buffer[offset]);
+            weight /= (1 + ABS(params.depth_info_buffer[ref_offset] - params.depth_info_buffer[offset]));
+            weight /= (1 + i * i + j * j / 5.f);
+            weight = MAX(0.0f, weight);
+            radiance_sum += params.render_target[ref_offset] * weight;
+            weigh_sum += weight;
+        }
+    }
+    radiance_sum /= weigh_sum;
+    params.output_buffer[offset * 3 + 0] = int(radiance_sum.x * 255.99);
+    params.output_buffer[offset * 3 + 1] = int(radiance_sum.y * 255.99);
+    params.output_buffer[offset * 3 + 2] = int(radiance_sum.z * 255.99);
 }
 
 void PathTracer::AllocateGpuMemory() {
     bvh_root_ = poca_mus::BuildBVH(objs_);
     // cudaMalloc((void**)&render_target_gpu_handle_, width_ * height_ * sizeof(Float4));
-    cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
     cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera));
     // cudaMalloc((void**)&materials_gpu_handle_, sizeof(Material*) * materials_.size());
     // cudaMalloc((void**)&scene_gpu_handle_, sizeof(Object*) * scene_.size());
@@ -115,7 +183,11 @@ void PathTracer::AllocateGpuMemory() {
     //     ObjectMemCpyToGpu(scene_[i], cur, materials_cpu_handle_to_gpu_handle_);
     //     cudaMemcpy(&(scene_gpu_handle_[i]), &cur, sizeof(Object*), cudaMemcpyHostToDevice);
     // }
-    cudaMalloc(reinterpret_cast<void**>(&d_rng_states_), height_ * width_ * sizeof(curandState));
+    cudaMalloc((void**)&render_target_, height_ * width_ * sizeof(Float4));
+    cudaMalloc((void**)&depth_info_buffer_, height_ * width_ * sizeof(float));
+    cudaMalloc((void**)&normal_info_buffer_, height_ * width_ * sizeof(Float4));
+    cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
+    cudaMalloc((void**)(&d_rng_states_), height_ * width_ * sizeof(curandState));
 }
 
 void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
@@ -130,7 +202,7 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     // }
     poca_mus::UpdateBVHInfos();
 
-    PathTracerparams params;
+    PathTracerParams params;
     params.width = width_;
     params.height = height_;
 
@@ -142,7 +214,10 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     params.max_recursion_depth = max_recursion_depth_;
 
     params.camera = camera_gpu_handle_;
-    params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
+    params.render_target = render_target_;
+    params.depth_info_buffer = depth_info_buffer_;
+    params.normal_info_buffer = normal_info_buffer_;
+    // params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
 
     params.d_rng_states = d_rng_states_;
 
@@ -150,6 +225,16 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
     SamplePixel<<<numBlocks, threadsPerBlock>>>(params);
     cudaDeviceSynchronize();
+
+    DenoisingParams params_denoising;
+    params_denoising.width = width_;
+    params_denoising.height = height_;
+    params_denoising.render_target = render_target_;
+    params_denoising.depth_info_buffer = depth_info_buffer_;
+    params_denoising.normal_info_buffer = normal_info_buffer_;
+    params_denoising.output_buffer = output_buffer_gpu_handle_;
+    Denoising<<<numBlocks, threadsPerBlock>>>(params_denoising);
+
     cudaMemcpy(buf, output_buffer_gpu_handle_, width_ * height_ * 3, cudaMemcpyDeviceToHost);
     const auto error = cudaGetLastError();
     if (error != 0) printf("[ERROR]Cuda Error %s\n", cudaGetErrorString(error));

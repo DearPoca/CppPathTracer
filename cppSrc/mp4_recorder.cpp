@@ -131,7 +131,6 @@ void Mp4Recoder::Process() {
         if (data_end == true) break;
 
         cv::Mat src(height_, width_, CV_8UC3, raw_data_buff_);
-        cv::Mat dst_means_denoising;
         cv::Mat dst_gaussian;
         cv::Mat dst_bilateral;
         cv::Mat dst_filter;

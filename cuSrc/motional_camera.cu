@@ -55,6 +55,6 @@ __device__ Ray MotionalCamera::RayGen(int x, int y, curandState* state) {
     ray.origin = origin_ + offset;
     ray.dir = top_left_corner_ + dx * horizontal_ + dy * vertical_ - origin_ - offset;
     ray.tmin = 0.f;
-    ray.tmax = 100000.f;
+    ray.tmax = DEFAULT_RAY_TMAX;
     return ray;
 }
