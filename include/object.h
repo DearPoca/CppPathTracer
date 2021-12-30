@@ -6,10 +6,10 @@
 #include "ray_tracing_math.hpp"
 
 #define FUNC_TYPE_DEFINE_INTERSECTION \
-    typedef bool (*FuncIntersectionTestPtr)(Object & self, Ray & ray, ProceduralPrimitiveAttributes & attr)
+    typedef bool (*FuncIntersectionTestPtr)(Object & self, Ray & ray, IntersectionAttributes & attr)
 #define FUNC_TYPE_DEFINE_CLOSET_HIT                                                  \
     typedef void (*FuncClosetHitPtr)(Object & self, Ray & ray, RayPayload & payload, \
-                                     ProceduralPrimitiveAttributes & attr)
+                                     IntersectionAttributes & attr)
 
 class Object {
 private:
@@ -21,6 +21,8 @@ public:
 
     Float4 center_;
     float radius_;
+
+    float elapsed_time_;
 
     __COMMON_GPU_CPU__ void UpdataAABB();
 

@@ -35,7 +35,7 @@ void PathTracer::AddObject(Object* obj) { objs_.push_back(obj); }
 
 // __device__ void TraceRay(PathTracerparams& params, Ray& ray, RayPayload& payload) {
 //     poca_mus::Normalize(ray.dir);
-//     ProceduralPrimitiveAttributes attr;
+//     IntersectionAttributes attr;
 //     Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
 //     if (closet_hit_obj != nullptr) {
 //         closet_hit_obj->ClosetHit(*closet_hit_obj, ray, payload, attr);
@@ -70,7 +70,7 @@ __global__ void SamplePixel(PathTracerparams params) {
         while (payload.recursion_depth < params.max_recursion_depth) {
             poca_mus::Normalize(ray.dir);
 
-            ProceduralPrimitiveAttributes attr;
+            IntersectionAttributes attr;
             Object* closet_hit_obj = poca_mus::TraceRay(params.bvh_root, ray, attr);
 
             if (closet_hit_obj != nullptr) {

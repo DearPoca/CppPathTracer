@@ -21,7 +21,7 @@ struct RayPayload {
     curandState *d_rng_states;
 };
 
-struct ProceduralPrimitiveAttributes {
+struct IntersectionAttributes {
     // Float4 ray_dir;
     Float4 normal;
     Float4 hit_pos;

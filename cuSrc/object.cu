@@ -1,6 +1,6 @@
 #include "object.h"
 
-__device__ bool SphereIntersectionTest(Object &self, Ray &ray, ProceduralPrimitiveAttributes &attr) {
+__device__ bool SphereIntersectionTest(Object &self, Ray &ray, IntersectionAttributes &attr) {
     Float4 A_C = ray.origin - self.center_;
     Float4 &B = ray.dir;
     float a = poca_mus::Dot(B, B);
@@ -28,7 +28,7 @@ __device__ bool SphereIntersectionTest(Object &self, Ray &ray, ProceduralPrimiti
     return false;
 }
 
-__device__ void ClosetHit(Object &self, Ray &ray, RayPayload &payload, ProceduralPrimitiveAttributes &attr) {
+__device__ void ClosetHit(Object &self, Ray &ray, RayPayload &payload, IntersectionAttributes &attr) {
     self.material_->EvalAttenuationAndCreateRay(*self.material_, attr.hit_pos, attr.normal, ray.dir, payload);
 }
 

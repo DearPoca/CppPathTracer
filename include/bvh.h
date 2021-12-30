@@ -30,7 +30,7 @@ namespace poca_mus {
     void ReleaseBVH();
 
     // 在GPU中寻找距离光线最近的物体, 若未击中物体则返回nullptr
-    __device__ Object *TraceRay(BVHNode *node, Ray &ray, ProceduralPrimitiveAttributes &attr);
+    __device__ Object *TraceRay(BVHNode *node, Ray &ray, IntersectionAttributes &attr);
 }  // namespace poca_mus
 
 #endif  // PATH_TRACER_BVH_H

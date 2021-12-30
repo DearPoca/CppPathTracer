@@ -232,6 +232,23 @@ namespace poca_mus {
         return false;
     }
 
+    __COMMON_GPU_CPU_INLINE__ float Clamp(float x, float t1, float t2) { return MIN(MAX(x, t1), t2); }
+
+    __COMMON_GPU_CPU_INLINE__ float Smoothstep(float t1, float t2, float x) {
+        x = Clamp((x - t1) / (t2 - t1), 0.0, 1.0);
+        return x * x * (3 - 2 * x);
+    }
+
+    __COMMON_GPU_CPU_INLINE__ float Lerp(float t1, float t2, float w) { return t1 + (t2 - t1) * w; }
+
+    __COMMON_GPU_CPU_INLINE__ Float4 Lerp(Float4 v1, Float4 v2, Float4 w) {
+        return Float4(Lerp(v1.x, v2.x, w.x), Lerp(v1.y, v2.y, w.y), Lerp(v1.z, v2.z, w.z), Lerp(v1.w, v2.w, w.w));
+    }
+
+    __COMMON_GPU_CPU_INLINE__ Float4 Lerp(Float4 v1, Float4 v2, float w) {
+        return Float4(Lerp(v1.x, v2.x, w), Lerp(v1.y, v2.y, w), Lerp(v1.z, v2.z, w), Lerp(v1.w, v2.w, w));
+    }
+
     __device__ inline Float4 GpuCreateRandomFloat4(curandState *state) {
         return Float4(curand_uniform(state), curand_uniform(state), curand_uniform(state), curand_uniform(state));
     }

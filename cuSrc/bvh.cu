@@ -155,7 +155,7 @@ void poca_mus::ReleaseBVH() {
     }
 }
 
-__device__ Object *poca_mus::TraceRay(BVHNode *root, Ray &ray, ProceduralPrimitiveAttributes &attr) {
+__device__ Object *poca_mus::TraceRay(BVHNode *root, Ray &ray, IntersectionAttributes &attr) {
     BVHNode *stack[512];
     int top = 0;
     stack[top++] = root;
