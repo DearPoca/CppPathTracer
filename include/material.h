@@ -5,14 +5,17 @@
 
 #include "path_tracing_common.h"
 
-enum MaterialType
-{
-    Diffuse = 0,
-    Plastic,
-    Mirror,
-    Glass,
-    Count
-};
+namespace MaterialType {
+    enum Enum
+    {
+        Diffuse = 0,
+        Plastic,
+        Mirror,
+        Glass,
+        Test,
+        Count
+    };
+}  // namespace MaterialType
 
 #define FUNC_TYPE_DEFINE_MATERIAL                                                                           \
     typedef void (*FuncEvalAttenuationAndCreateRayPtr)(Material & self, Float4 & position, Float4 & normal, \
@@ -21,7 +24,7 @@ enum MaterialType
 class Material {
 private:
 public:
-    MaterialType type_;
+    MaterialType::Enum type_;
     Float4 Kd_;
     float refractive_index_;
     float emit_intensity_;

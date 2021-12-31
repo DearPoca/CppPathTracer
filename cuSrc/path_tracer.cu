@@ -18,7 +18,7 @@ struct PathTracerParams {
     uint max_recursion_depth;
 
     MotionalCamera* camera;
-    // uint8_t* output_buffer_gpu_handle;
+    uint8_t* output_buffer_gpu_handle;
     float* depth_info_buffer;
     Float4* normal_info_buffer;
     Float4* render_target;
@@ -72,7 +72,7 @@ __global__ void SamplePixel(PathTracerParams params) {
     Float4 radiance = 0.0f;
     Float4 normals = 0.0f;
     float depth = 0.0f;
-    curand_init(offset, 0, 0, &(params.d_rng_states[offset]));
+    // curand_init(offset, 0, 0, &(params.d_rng_states[offset]));
     for (uint i = 0; i < params.spp; ++i) {
         Ray ray = params.camera->RayGen(x, y, &(params.d_rng_states[offset]));
         RayPayload payload;
@@ -145,7 +145,7 @@ __global__ void Denoising(DenoisingParams params) {
     int offset = y * params.width + x;
     float weigh_sum = 0.0f;
     Float4 radiance_sum = 0.0f;
-    int size = 0;
+    int size = 2;
     for (int i = -size; i <= size; ++i) {
         for (int j = -size; j <= size; ++j) {
             if (x + i < 0 || x + i >= params.width || y + j < 0 || y + j >= params.height) continue;
@@ -162,6 +162,13 @@ __global__ void Denoising(DenoisingParams params) {
     params.output_buffer[offset * 3 + 0] = int(radiance_sum.x * 255.99);
     params.output_buffer[offset * 3 + 1] = int(radiance_sum.y * 255.99);
     params.output_buffer[offset * 3 + 2] = int(radiance_sum.z * 255.99);
+}
+
+__global__ void InitCuRand(curandState* d_rng_states, int width, int height) {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    int offset = y * width + x;
+    curand_init(offset * 13455, offset, 0, &(d_rng_states[offset]));
 }
 
 void PathTracer::AllocateGpuMemory() {
@@ -188,6 +195,9 @@ void PathTracer::AllocateGpuMemory() {
     cudaMalloc((void**)&normal_info_buffer_, height_ * width_ * sizeof(Float4));
     cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
     cudaMalloc((void**)(&d_rng_states_), height_ * width_ * sizeof(curandState));
+    dim3 threadsPerBlock(16, 16);
+    dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
+    InitCuRand<<<numBlocks, threadsPerBlock>>>(d_rng_states_, width_, height_);
 }
 
 void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
@@ -217,7 +227,7 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     params.render_target = render_target_;
     params.depth_info_buffer = depth_info_buffer_;
     params.normal_info_buffer = normal_info_buffer_;
-    // params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
+    params.output_buffer_gpu_handle = output_buffer_gpu_handle_;
 
     params.d_rng_states = d_rng_states_;
 

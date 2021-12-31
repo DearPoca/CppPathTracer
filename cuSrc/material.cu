@@ -115,7 +115,7 @@ __device__ void GlassHitShader(Material &self, Float4 &position, Float4 &normal,
 }
 
 __COMMON_GPU_CPU__ Material::Material() {
-    type_ = Diffuse;
+    type_ = MaterialType::Diffuse;
     Kd_ = Float4(0.9, 0.9, 0.9);
     refractive_index_ = 0.f;
     emit_intensity_ = 0.f;
