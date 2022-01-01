@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
                 obj->type_ = PrimitiveType::Sphere;
                 obj->material_ = materials[rand() % 20];
                 obj->radius_ = poca_mus::Random() * 5.f + 1.f;
-                obj->center_ = Float4(poca_mus::Random() * 300.f - 150.f, 1.f + poca_mus::Random() * 20.f, float(i));
+                obj->center_ = Float4(poca_mus::Random() * 300.f - 150.f, obj->radius_, float(i));
                 obj->UpdataAABB();
                 path_tracer->AddObject(obj);
                 if (obj->material_->type_ == MaterialType::Glass && poca_mus::Random() > 0.5f) {
@@ -144,8 +144,7 @@ int main(int argc, char **argv) {
                 obj->material_ = materials[int(poca_mus::Random() * 2048) % 5 + 20];
                 obj->radius_ = poca_mus::Random() * 5.f + 1.f;
                 obj->height_ = obj->radius_ / 2 + poca_mus::Random() * 20.f;
-                obj->center_ =
-                    Float4(poca_mus::Random() * 300.f - 150.f, obj->height_ + poca_mus::Random() * 20.f, float(i));
+                obj->center_ = Float4(poca_mus::Random() * 300.f - 150.f, obj->height_ / 2, float(i));
                 obj->UpdataAABB();
                 path_tracer->AddObject(obj);
                 if (obj->material_->type_ == MaterialType::Glass && poca_mus::Random() > 0.5f) {
