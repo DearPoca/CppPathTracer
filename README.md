@@ -5,13 +5,13 @@
 材质:
 ```
 Diffuse: 漫反射
-Metal: 金属,同时拥有漫反射和镜面反射性质
-Mirror:镜面反射材质
-Glass:玻璃,可以折射光线
+Metal: 金属, 同时拥有漫反射和镜面反射性质
+Mirror: 镜面反射材质
+Glass: 玻璃, 可以折射光线
 ```
 物体:
 ```
-目前只支持计算几何
+目前只支持Procedural Geometry
 Sphere: 球体
 Platform: 垂直于y轴的平面
 Cylinder: 圆柱体
