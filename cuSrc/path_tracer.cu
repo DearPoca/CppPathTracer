@@ -5,13 +5,12 @@
 
 #include "bvh.h"
 #include "object.h"
-#include "opencv2/core.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc.hpp"
 #include "path_tracer.h"
+#include "textures.h"
 
 struct PathTracerParams {
-    uint width, height;
+    int width, height;
+    int sky_tex_index;
 
     // Object** scene;
     // uint scene_size;
@@ -30,7 +29,7 @@ struct PathTracerParams {
 };
 
 struct DenoisingParams {
-    uint width, height;
+    int width, height;
     float* depth_info_buffer;
     Float4* normal_info_buffer;
     Float4* render_target;
@@ -42,8 +41,7 @@ texture<uchar4, cudaTextureType2D, cudaReadModeNormalizedFloat> sky_texture;
 __device__ void MissShader(Ray& ray, RayPayload& payload) {
     Float4 d = poca_mus::GetNormalizeVec(ray.dir);
     float v = asin(d.z) / M_PI + 0.5, u = atan(d.y / d.x) / 2 / M_PI;
-    float4 rgb = tex2D(sky_texture, u, v);
-    payload.radiance = Float4(rgb.x, rgb.y, rgb.z, rgb.w);
+    payload.radiance = poca_mus::tex2D(payload.sky_tex_index, u, v);
     payload.recursion_depth = MMAX_RECURSION_DEPTH;
 }
 
@@ -84,6 +82,7 @@ __global__ void SamplePixel(PathTracerParams params) {
         Float4 attenuation = 1.0f;
         payload.recursion_depth = 0;
         payload.d_rng_states = &params.d_rng_states[offset];
+        payload.sky_tex_index = params.sky_tex_index;
 
         // 首次光线要记录深度和法线信息
         {
@@ -197,26 +196,7 @@ void PathTracer::AllocateGpuMemory() {
     // }
 
     // 添加天空盒纹理
-    {
-        cv::Mat sky = cv::imread("textures/sky.png");
-        cv::cvtColor(sky, sky, CV_BGR2RGBA);
-
-        cudaArray* cuArray;
-        cudaChannelFormatDesc cuDesc = cudaCreateChannelDesc<uchar4>();
-
-        int img_width = sky.cols;
-        int img_height = sky.rows;
-        int channels = sky.channels();
-        sky_texture.addressMode[0] = cudaAddressModeMirror;
-        sky_texture.addressMode[1] = cudaAddressModeMirror;
-        sky_texture.normalized = true;
-        sky_texture.filterMode = cudaFilterModeLinear;
-        cudaMallocArray(&cuArray, &cuDesc, img_width, img_height);
-        cudaBindTextureToArray(sky_texture, cuArray);
-
-        cudaMemcpyToArray(cuArray, 0, 0, sky.data, img_width * img_height * sizeof(uchar) * channels,
-                          cudaMemcpyHostToDevice);
-    }
+    sky_tex_index_ = poca_mus::AddTexByFile("textures/sky.png");
 
     cudaMalloc((void**)&render_target_, height_ * width_ * sizeof(Float4));
     cudaMalloc((void**)&depth_info_buffer_, height_ * width_ * sizeof(float));
@@ -243,6 +223,7 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     PathTracerParams params;
     params.width = width_;
     params.height = height_;
+    params.sky_tex_index = sky_tex_index_;
 
     // params.scene = scene_gpu_handle_;
     // params.scene_size = scene_.size();

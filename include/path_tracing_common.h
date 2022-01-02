@@ -21,6 +21,7 @@ struct RayPayload {
     Float4 hit_pos;
     Float4 bounce_dir;
     uint recursion_depth;
+    int sky_tex_index;
     curandState *d_rng_states;
 };
 
