@@ -4,15 +4,17 @@
 
 材质:
 ```
-Diffuse:漫反射
-Plastic:不限于塑料,也可是金属,部分漫反射部分镜面反射
+Diffuse: 漫反射
+Metal: 金属,同时拥有漫反射和镜面反射性质
 Mirror:镜面反射材质
 Glass:玻璃,可以折射光线
 ```
 物体:
 ```
 目前只支持计算几何
-Sphere:球体
+Sphere: 球体
+Platform: 垂直于y轴的平面
+Cylinder: 圆柱体
 ```
 
 需要根据系统环境修改以下代码
@@ -23,5 +25,5 @@ include_directories(/usr/local/cuda-11.5/include)
 
 效果:
 
-![image](https://user-images.githubusercontent.com/44687653/147650773-7883d96c-6eb5-4cfb-978b-2827e7379fc5.png)
+![image](https://user-images.githubusercontent.com/44687653/147867714-b9b0bf8a-09ea-4dbd-92e2-9544ebd8528b.png)
 
