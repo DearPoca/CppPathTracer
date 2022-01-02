@@ -10,7 +10,7 @@
 
 struct PathTracerParams {
     int width, height;
-    int sky_tex_index;
+    cudaTextureObject_t sky_tex_obj;
 
     // Object** scene;
     // uint scene_size;
@@ -41,7 +41,7 @@ texture<uchar4, cudaTextureType2D, cudaReadModeNormalizedFloat> sky_texture;
 __device__ void MissShader(Ray& ray, RayPayload& payload) {
     Float4 d = poca_mus::GetNormalizeVec(ray.dir);
     float v = asin(d.z) / M_PI + 0.5, u = atan(d.y / d.x) / 2 / M_PI;
-    payload.radiance = poca_mus::tex2D(payload.sky_tex_index, u, v);
+    payload.radiance = poca_mus::GetTex2D(payload.sky_tex_obj, u, v);
     payload.recursion_depth = MMAX_RECURSION_DEPTH;
 }
 
@@ -82,7 +82,7 @@ __global__ void SamplePixel(PathTracerParams params) {
         Float4 attenuation = 1.0f;
         payload.recursion_depth = 0;
         payload.d_rng_states = &params.d_rng_states[offset];
-        payload.sky_tex_index = params.sky_tex_index;
+        payload.sky_tex_obj = params.sky_tex_obj;
 
         // 首次光线要记录深度和法线信息
         {
@@ -196,7 +196,7 @@ void PathTracer::AllocateGpuMemory() {
     // }
 
     // 添加天空盒纹理
-    sky_tex_index_ = poca_mus::AddTexByFile("textures/sky.png");
+    sky_tex_obj_ = poca_mus::AddTexByFile("textures/sky.png");
 
     cudaMalloc((void**)&render_target_, height_ * width_ * sizeof(Float4));
     cudaMalloc((void**)&depth_info_buffer_, height_ * width_ * sizeof(float));
@@ -223,10 +223,8 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     PathTracerParams params;
     params.width = width_;
     params.height = height_;
-    params.sky_tex_index = sky_tex_index_;
+    params.sky_tex_obj = sky_tex_obj_;
 
-    // params.scene = scene_gpu_handle_;
-    // params.scene_size = scene_.size();
     params.bvh_root = bvh_root_;
 
     params.spp = spp_;

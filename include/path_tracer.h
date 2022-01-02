@@ -14,7 +14,7 @@ class PathTracer {
 private:
     int width_;
     int height_;
-    int sky_tex_index_;
+    cudaTextureObject_t sky_tex_obj_;
     uint spp_ = 5;
     uint8_t max_recursion_depth_ = 12;
     Float4* render_target_;

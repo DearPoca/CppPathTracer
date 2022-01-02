@@ -8,9 +8,9 @@
 #define MAX_TEXTURES_AMOUNT 8
 
 namespace poca_mus {
-    int AddTexByFile(std::string file_path);
+    cudaTextureObject_t AddTexByFile(std::string file_path);
 
-    __device__ Float4 tex2D(int tex_index, float u, float v);
+    __device__ Float4 GetTex2D(cudaTextureObject_t tex_obj, float u, float v);
 }  // namespace poca_mus
 
 #endif  // TEXTURES_H_479237525
