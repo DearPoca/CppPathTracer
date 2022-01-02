@@ -77,11 +77,11 @@ BVHNode *BuildBVHInGpu(BVHNode *node_cpu_handle) {
     // 需要为物体分配GPU内存空间
     if (tmp.is_object_) {
         Object *obj_gpu_handle;
-        cudaMalloc((void **)&obj_gpu_handle, sizeof(Object));
+        checkCudaErrors(cudaMalloc((void **)&obj_gpu_handle, sizeof(Object)));
         // 材质库中未保存当前材质
         if (!materials_cpu_handle_to_gpu_handle.count(node_cpu_handle->obj_->material_)) {
             Material *mat_gpu_handle;
-            cudaMalloc((void **)&mat_gpu_handle, sizeof(Material));
+            checkCudaErrors(cudaMalloc((void **)&mat_gpu_handle, sizeof(Material)));
             materials_cpu_handle_to_gpu_handle[node_cpu_handle->obj_->material_] = mat_gpu_handle;
             MaterialMemCpyToGpu(node_cpu_handle->obj_->material_, mat_gpu_handle);
         }
@@ -91,8 +91,8 @@ BVHNode *BuildBVHInGpu(BVHNode *node_cpu_handle) {
         tmp.obj_ = obj_gpu_handle;
     }
     BVHNode *ret;
-    cudaMalloc((void **)&ret, sizeof(BVHNode));
-    cudaMemcpy((void *)ret, (void *)&tmp, sizeof(BVHNode), cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMalloc((void **)&ret, sizeof(BVHNode)));
+    checkCudaErrors(cudaMemcpy((void *)ret, (void *)&tmp, sizeof(BVHNode), cudaMemcpyHostToDevice));
     bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle] = ret;
     return ret;
 }
@@ -124,10 +124,10 @@ void UpdateBVHNode(BVHNode *node_cpu_handle) {
             MIN(node_cpu_handle->left_son_->AABB_min_.z, node_cpu_handle->right_son_->AABB_min_.z);
         BVHNode tmp;
         BVHNode *node_gpu_handle = bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle];
-        cudaMemcpy((void *)&tmp, (void *)node_gpu_handle, sizeof(BVHNode), cudaMemcpyDeviceToHost);
+        checkCudaErrors(cudaMemcpy((void *)&tmp, (void *)node_gpu_handle, sizeof(BVHNode), cudaMemcpyDeviceToHost));
         tmp.AABB_max_ = node_cpu_handle->AABB_max_;
         tmp.AABB_min_ = node_cpu_handle->AABB_min_;
-        cudaMemcpy((void *)node_gpu_handle, (void *)&tmp, sizeof(BVHNode), cudaMemcpyHostToDevice);
+        checkCudaErrors(cudaMemcpy((void *)node_gpu_handle, (void *)&tmp, sizeof(BVHNode), cudaMemcpyHostToDevice));
     }
 }
 

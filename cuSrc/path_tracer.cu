@@ -36,8 +36,6 @@ struct DenoisingParams {
     uint8_t* output_buffer;
 };
 
-texture<uchar4, cudaTextureType2D, cudaReadModeNormalizedFloat> sky_texture;
-
 __device__ void MissShader(Ray& ray, RayPayload& payload) {
     Float4 d = poca_mus::GetNormalizeVec(ray.dir);
     float v = asin(d.z) / M_PI + 0.5, u = atan(d.y / d.x) / 2 / M_PI;
@@ -178,7 +176,7 @@ __global__ void InitCuRand(curandState* d_rng_states, int width, int height) {
 void PathTracer::AllocateGpuMemory() {
     bvh_root_ = poca_mus::BuildBVH(objs_);
     // cudaMalloc((void**)&render_target_gpu_handle_, width_ * height_ * sizeof(Float4));
-    cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera));
+    checkCudaErrors(cudaMalloc((void**)&camera_gpu_handle_, sizeof(MotionalCamera)));
     // cudaMalloc((void**)&materials_gpu_handle_, sizeof(Material*) * materials_.size());
     // cudaMalloc((void**)&scene_gpu_handle_, sizeof(Object*) * scene_.size());
     // for (int i = 0; i < materials_.size(); ++i) {
@@ -198,11 +196,11 @@ void PathTracer::AllocateGpuMemory() {
     // 添加天空盒纹理
     sky_tex_obj_ = poca_mus::AddTexByFile("textures/sky.png");
 
-    cudaMalloc((void**)&render_target_, height_ * width_ * sizeof(Float4));
-    cudaMalloc((void**)&depth_info_buffer_, height_ * width_ * sizeof(float));
-    cudaMalloc((void**)&normal_info_buffer_, height_ * width_ * sizeof(Float4));
-    cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3);
-    cudaMalloc((void**)(&d_rng_states_), height_ * width_ * sizeof(curandState));
+    checkCudaErrors(cudaMalloc((void**)&render_target_, height_ * width_ * sizeof(Float4)));
+    checkCudaErrors(cudaMalloc((void**)&depth_info_buffer_, height_ * width_ * sizeof(float)));
+    checkCudaErrors(cudaMalloc((void**)&normal_info_buffer_, height_ * width_ * sizeof(Float4)));
+    checkCudaErrors(cudaMalloc((void**)&output_buffer_gpu_handle_, width_ * height_ * 3));
+    checkCudaErrors(cudaMalloc((void**)(&d_rng_states_), height_ * width_ * sizeof(curandState)));
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
     InitCuRand<<<numBlocks, threadsPerBlock>>>(d_rng_states_, width_, height_);
@@ -210,7 +208,7 @@ void PathTracer::AllocateGpuMemory() {
 
 void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     camera_->Updata();
-    cudaMemcpy(camera_gpu_handle_, camera_, sizeof(MotionalCamera), cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy(camera_gpu_handle_, camera_, sizeof(MotionalCamera), cudaMemcpyHostToDevice));
 
     // for (auto ptr_pair : materials_cpu_handle_to_gpu_handle_) {
     //     MaterialMemCpyToGpu((Material*)ptr_pair.first, (Material*)ptr_pair.second);
@@ -241,7 +239,7 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     dim3 threadsPerBlock(16, 16);
     dim3 numBlocks(width_ / threadsPerBlock.x, height_ / threadsPerBlock.y);
     SamplePixel<<<numBlocks, threadsPerBlock>>>(params);
-    cudaDeviceSynchronize();
+    checkCudaErrors(cudaDeviceSynchronize());
 
     DenoisingParams params_denoising;
     params_denoising.width = width_;
@@ -252,7 +250,8 @@ void PathTracer::DispatchRay(uint8_t* buf, int size, int64_t t) {
     params_denoising.output_buffer = output_buffer_gpu_handle_;
     Denoising<<<numBlocks, threadsPerBlock>>>(params_denoising);
 
-    cudaMemcpy(buf, output_buffer_gpu_handle_, width_ * height_ * 3, cudaMemcpyDeviceToHost);
     const auto error = cudaGetLastError();
     if (error != 0) printf("[ERROR]Cuda Error %s\n", cudaGetErrorString(error));
+
+    checkCudaErrors(cudaMemcpy(buf, output_buffer_gpu_handle_, width_ * height_ * 3, cudaMemcpyDeviceToHost));
 }

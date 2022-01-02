@@ -27,6 +27,15 @@
 #define __COMMON_GPU_CPU__ __device__ __host__
 #define __COMMON_GPU_CPU_INLINE__ __COMMON_GPU_CPU__ inline
 
+#define checkCudaErrors(err) __checkCudaErrors(err, __FILE__, __LINE__)
+
+inline void __checkCudaErrors(cudaError err, const char *file, const int line) {
+    if (cudaSuccess != err) {
+        fprintf(stderr, "%s(%i) : CUDA Runtime API error %d: %s.\n", file, line, (int)err, cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+}
+
 class Float4 {
 private:
 public:

@@ -53,6 +53,10 @@ int main(int argc, char **argv) {
     {
         // 创建材质库
         std::vector<Material *> materials = {new Material};
+        materials[0]->type_ = MaterialType::Metal;
+        materials[0]->smoothness_ = 1.5f;
+        materials[0]->reflectivity_ = 0.4f;
+        materials[0]->Kd_ = Float4(0.95f, 0.96f, 0.99f);
         for (int i = 1; i < 20; ++i) {
             materials.push_back(new Material);
             materials[i]->Kd_ = poca_mus::CreateRandomFloat4();

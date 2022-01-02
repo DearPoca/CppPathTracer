@@ -138,22 +138,22 @@ void ObjectMemCpyToGpu(Object *object_host, Object *object_gpu_handle, Material 
     Object tmp;
     memcpy(&tmp, object_host, sizeof(Object));
     tmp.material_ = material_gpu_handle;
-    cudaMemcpy((void *)object_gpu_handle, (void *)&tmp, sizeof(Object), cudaMemcpyHostToDevice);
+    checkCudaErrors(cudaMemcpy((void *)object_gpu_handle, (void *)&tmp, sizeof(Object), cudaMemcpyHostToDevice));
     switch (object_host->type_) {
         case PrimitiveType::Sphere:
-            cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_sphere,
-                                 sizeof(FuncIntersectionTestPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_sphere,
+                                                 sizeof(FuncIntersectionTestPtr)));
             break;
         case PrimitiveType::Platform:
-            cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_platform,
-                                 sizeof(FuncIntersectionTestPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_platform,
+                                                 sizeof(FuncIntersectionTestPtr)));
             break;
         case PrimitiveType::Cylinder:
-            cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_cylinder,
-                                 sizeof(FuncIntersectionTestPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&object_gpu_handle->IntersectionTest, fp_intersection_cylinder,
+                                                 sizeof(FuncIntersectionTestPtr)));
             break;
         default:
             break;
     }
-    cudaMemcpyFromSymbol(&object_gpu_handle->ClosetHit, fp_closet_hit, sizeof(FuncClosetHitPtr));
+    checkCudaErrors(cudaMemcpyFromSymbol(&object_gpu_handle->ClosetHit, fp_closet_hit, sizeof(FuncClosetHitPtr)));
 }

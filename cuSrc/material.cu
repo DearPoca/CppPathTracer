@@ -43,7 +43,7 @@ __device__ void MirrorHitShader(Material &self, Float4 &position, Float4 &normal
 }
 
 __device__ void MetalHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
-                                 RayPayload &payload) {
+                               RayPayload &payload) {
     float x_1 = curand_uniform(payload.d_rng_states), x_2 = curand_uniform(payload.d_rng_states);
     float s = self.smoothness_;
     float alpha = pow(1000.0f, s);
@@ -129,26 +129,27 @@ __device__ FuncEvalAttenuationAndCreateRayPtr fp_mirror = MirrorHitShader;
 __device__ FuncEvalAttenuationAndCreateRayPtr fp_glass = GlassHitShader;
 
 void MaterialMemCpyToGpu(Material *material_host, Material *material_gpu_handle) {
-    cudaMemcpy((void *)material_gpu_handle, (void *)material_host, sizeof(Material), cudaMemcpyHostToDevice);
+    checkCudaErrors(
+        cudaMemcpy((void *)material_gpu_handle, (void *)material_host, sizeof(Material), cudaMemcpyHostToDevice));
     switch (material_host->type_) {
         case MaterialType::Diffuse:
-            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_diffuse,
-                                 sizeof(FuncEvalAttenuationAndCreateRayPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_diffuse,
+                                                 sizeof(FuncEvalAttenuationAndCreateRayPtr)));
             break;
         case MaterialType::Metal:
-            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_metal,
-                                 sizeof(FuncEvalAttenuationAndCreateRayPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_metal,
+                                                 sizeof(FuncEvalAttenuationAndCreateRayPtr)));
             break;
         case MaterialType::Mirror:
-            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_mirror,
-                                 sizeof(FuncEvalAttenuationAndCreateRayPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_mirror,
+                                                 sizeof(FuncEvalAttenuationAndCreateRayPtr)));
             break;
         case MaterialType::Glass:
-            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_glass,
-                                 sizeof(FuncEvalAttenuationAndCreateRayPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_glass,
+                                                 sizeof(FuncEvalAttenuationAndCreateRayPtr)));
             break;
         default:
-            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_diffuse,
-                                 sizeof(FuncEvalAttenuationAndCreateRayPtr));
+            checkCudaErrors(cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_diffuse,
+                                                 sizeof(FuncEvalAttenuationAndCreateRayPtr)));
     }
 }
