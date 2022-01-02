@@ -42,7 +42,7 @@ __device__ void MirrorHitShader(Material &self, Float4 &position, Float4 &normal
     payload.hit_pos = position;
 }
 
-__device__ void PlasticHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
+__device__ void MetalHitShader(Material &self, Float4 &position, Float4 &normal, Float4 &in_ray_dir,
                                  RayPayload &payload) {
     float x_1 = curand_uniform(payload.d_rng_states), x_2 = curand_uniform(payload.d_rng_states);
     float s = self.smoothness_;
@@ -124,7 +124,7 @@ __COMMON_GPU_CPU__ Material::Material() {
 }
 
 __device__ FuncEvalAttenuationAndCreateRayPtr fp_diffuse = DiffuseHitShader;
-__device__ FuncEvalAttenuationAndCreateRayPtr fp_plastic = PlasticHitShader;
+__device__ FuncEvalAttenuationAndCreateRayPtr fp_metal = MetalHitShader;
 __device__ FuncEvalAttenuationAndCreateRayPtr fp_mirror = MirrorHitShader;
 __device__ FuncEvalAttenuationAndCreateRayPtr fp_glass = GlassHitShader;
 
@@ -135,8 +135,8 @@ void MaterialMemCpyToGpu(Material *material_host, Material *material_gpu_handle)
             cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_diffuse,
                                  sizeof(FuncEvalAttenuationAndCreateRayPtr));
             break;
-        case MaterialType::Plastic:
-            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_plastic,
+        case MaterialType::Metal:
+            cudaMemcpyFromSymbol(&material_gpu_handle->EvalAttenuationAndCreateRay, fp_metal,
                                  sizeof(FuncEvalAttenuationAndCreateRayPtr));
             break;
         case MaterialType::Mirror:

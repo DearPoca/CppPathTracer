@@ -9,7 +9,7 @@ namespace MaterialType {
     enum Enum
     {
         Diffuse = 0,
-        Plastic,
+        Metal,
         Mirror,
         Glass,
         Test,

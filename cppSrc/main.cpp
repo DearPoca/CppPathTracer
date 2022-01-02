@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
             int rnd = int(poca_mus::Random() * 2048) % MaterialType::Count;
             switch (rnd) {
                 case 1:
-                    materials[i]->type_ = MaterialType::Plastic;
+                    materials[i]->type_ = MaterialType::Metal;
                     materials[i]->smoothness_ = poca_mus::Random() * 4 + 1.f;
                     materials[i]->reflectivity_ = poca_mus::Random() * 0.8f;
                     break;
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
         {
             materials.push_back(new Material);
             materials[21]->Kd_ = 0.2f + 0.8f * poca_mus::CreateRandomFloat4();
-            materials[21]->type_ = MaterialType::Plastic;
+            materials[21]->type_ = MaterialType::Metal;
             materials[21]->smoothness_ = 0.8f;
             materials[21]->reflectivity_ = 0.7f;
         }
