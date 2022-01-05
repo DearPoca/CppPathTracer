@@ -25,5 +25,5 @@ include_directories(/usr/local/cuda-11.5/include)
 
 效果:
 
-![image](https://user-images.githubusercontent.com/44687653/147867714-b9b0bf8a-09ea-4dbd-92e2-9544ebd8528b.png)
+![image](https://user-images.githubusercontent.com/44687653/148175016-21c0daba-3003-4393-8598-44c3be3cc507.png)
 
