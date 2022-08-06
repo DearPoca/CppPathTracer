@@ -1,5 +1,4 @@
-#ifndef SEMAPHORE_342536253245532_H
-#define SEMAPHORE_342536253245532_H
+#pragma once
 
 #include <atomic>
 #include <condition_variable>
@@ -8,16 +7,25 @@
 class Semaphore
 {
 public:
-  explicit Semaphore(int count = 0);
+	inline explicit Semaphore(int count = 0):count_(count) {
+		
+	}
 
-  void Signal();
+	inline void Signal() {
+		std::unique_lock<std::mutex> lock(mutex_);
+		++count_;
+		cv_.notify_one();
+	}
 
-  void Wait();
+	inline void Wait() {
+		std::unique_lock<std::mutex> lock(mutex_);
+		cv_.wait(lock, [=]
+			{ return count_ > 0; });
+		--count_;
+	}
 
 private:
-  std::mutex mutex_;
-  std::condition_variable cv_;
-  int count_;
+	std::mutex mutex_;
+	std::condition_variable cv_;
+	int count_;
 };
-
-#endif

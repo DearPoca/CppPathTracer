@@ -1,42 +1,38 @@
-#ifndef MATERIAL_H_432528432
-#define MATERIAL_H_432528432
+#pragma once
 
-#include <map>
-
-#include "path_tracing_common.h"
+#include "ray_tracing_common.h"
 
 namespace MaterialType {
-    enum Enum
-    {
-        Diffuse = 0,
-        Metal,
-        Mirror,
-        Glass,
-        Test,
-        Count
-    };
+	enum Enum
+	{
+		Diffuse = 0,
+		Metal,
+		Mirror,
+		Glass,
+		Test,
+		Count
+	};
 }  // namespace MaterialType
-
-#define FUNC_TYPE_DEFINE_MATERIAL                                                                           \
-    typedef void (*FuncEvalAttenuationAndCreateRayPtr)(Material & self, Float4 & position, Float4 & normal, \
-                                                       Float4 & in_ray_dir, RayPayload & payload)
 
 class Material {
 private:
 public:
-    MaterialType::Enum type_;
-    Float4 Kd_;
-    float refractive_index_;
-    float emit_intensity_;
-    float smoothness_;
-    float reflectivity_;
+	MaterialType::Enum type_;
+	bool have_tex_;
+	union {
+		float3 kd_;
+		cudaTextureObject_t tex_;
+	};
+	float refractive_index_;
+	float emit_intensity_;
+	float smoothness_;
+	float reflectivity_;
 
-    __COMMON_GPU_CPU__ Material();
+	__COMMON_GPU_CPU__ Material();
 
-    FUNC_TYPE_DEFINE_MATERIAL;
-    FuncEvalAttenuationAndCreateRayPtr EvalAttenuationAndCreateRay;
+	__device__ void EvalAttenuationAndCreateRay(RayPayload& payload, float3 position, float3 normal,
+		float3 in_ray_dir, float x = 0.f, float y = 0.f);
+
+	__device__ float3 GetKd(float x = 0.f, float y = 0.f);
 };
-FUNC_TYPE_DEFINE_MATERIAL;
-void MaterialMemCpyToGpu(Material *material_host, Material *material_gpu_handle);
 
-#endif  // MATERIAL_H_432528432

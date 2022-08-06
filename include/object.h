@@ -1,53 +1,36 @@
-#ifndef OBJECT_H_45234263
-#define OBJECT_H_45234263
+#pragma once
 
 #include "material.h"
-#include "path_tracing_common.h"
+#include "ray_tracing_common.h"
 #include "ray_tracing_math.hpp"
 
-#define FUNC_TYPE_DEFINE_INTERSECTION \
-    typedef bool (*FuncIntersectionTestPtr)(Object & self, Ray & ray, IntersectionAttributes & attr)
-#define FUNC_TYPE_DEFINE_CLOSET_HIT \
-    typedef void (*FuncClosetHitPtr)(Object & self, Ray & ray, RayPayload & payload, IntersectionAttributes & attr)
-
 namespace PrimitiveType {
-    enum Enum
-    {
-        Sphere,
-        Platform,
-        Cylinder,
-        Count
-    };
+	enum Enum
+	{
+		Sphere,
+		Platform,
+		Cylinder,
+		Count
+	};
 }  // namespace PrimitiveType
 
 class Object {
-private:
 public:
-    PrimitiveType::Enum type_;
+	float3 GetAABBMin();
+	float3 GetAABBMax();
 
-    Material *material_;
+	__device__ bool IntersectionTest(Ray& ray, IntersectionAttributes& attr);
+	__device__ void ClosetHit(RayPayload& payload, IntersectionAttributes& attr);
 
-    Float4 AABB_min_;
-    Float4 AABB_max_;
+	Object();
 
-    Float4 center_;
-    float radius_;
+	PrimitiveType::Enum type_;
+	Material material_;
 
-    float y_pos_;
-
-    float height_;
-
-    __COMMON_GPU_CPU__ void UpdataAABB();
-
-    FUNC_TYPE_DEFINE_INTERSECTION;
-    FUNC_TYPE_DEFINE_CLOSET_HIT;
-    FuncIntersectionTestPtr IntersectionTest;
-    FuncClosetHitPtr ClosetHit;
+	float3 center_;
+	float radius_;	// for Sphere and Cylinder
+	float y_pos_;	// for Platform
+	float height_;	// for Cylinder
 };
 
-FUNC_TYPE_DEFINE_INTERSECTION;
-FUNC_TYPE_DEFINE_CLOSET_HIT;
 
-void ObjectMemCpyToGpu(Object *object_host, Object *object_gpu_handle, Material *material_gpu_handle);
-
-#endif  // OBJECT_H_45234263

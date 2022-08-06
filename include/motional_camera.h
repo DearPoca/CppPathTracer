@@ -1,42 +1,59 @@
-#ifndef MOTIONAL_CAMERA_H
-#define MOTIONAL_CAMERA_H
+#pragma once
 
-#include "path_tracing_common.h"
+#include "ray_tracing_math.hpp"
+#include "ray_tracing_common.h"
 
 class MotionalCamera {
 private:
-    int width_;
-    int height_;
+	const float3 vup = make_float3(0.0f, 1.0f, 0.0f);
 
-    Float4 origin_;
-    Float4 look_at_;
-    float view_fov_ = 20;        //ËßÜËßí
-    float dist_to_focus_ = 10;   //ÁÑ¶Ë∑ù
-    float lens_radius_ = 0.05f;  //Â≠îÂçäÂæÑ
+	int width_;
+	int height_;
+	uint cur_sample_idx_;
 
-    Float4 u_, v_, w_;
-    Float4 top_left_corner_;
-    Float4 horizontal_;
-    Float4 vertical_;
+	float3 origin_;
+	float3 look_at_;
+	float view_fov_ = 20;        // ”Ω«
+	float dist_to_focus_ = 10;   //Ωπæ‡
+	float lens_radius_ = 0.05f;  //ø◊∞Îæ∂
+	float move_speed_ = 0.005f;
+
+	float3 u_, v_, w_;
+	float3 top_left_corner_;
+	float3 horizontal_;
+	float3 vertical_;
 
 public:
-    MotionalCamera();
-    MotionalCamera(int width, int height);
+	MotionalCamera();
+	MotionalCamera(int width, int height);
+	MotionalCamera(int width, int height, float3 ori, float3 at);
 
-    ~MotionalCamera();
+	~MotionalCamera();
 
-    void Resize(int width, int height);
-    void SetOrigin(Float4 ori);
-    void SetOrigin(float x, float y, float z);
+	void Resize(int width, int height);
+	void SetOrigin(float3 ori);
+	void SetOrigin(float x, float y, float z);
 
-    void SetLookAt(Float4 lookAt);
-    void SetLookAt(float x, float y, float z);
+	void SetLookAt(float3 lookAt);
+	void SetLookAt(float x, float y, float z);
 
-    void SetViewFov(float fov);
+	void SetViewFov(float fov);
 
-    void Updata();
+	void MoveEyeLeft(float coefficient = 1.f, bool refresh = true);
+	void MoveEyeRight(float coefficient = 1.f, bool refresh = true);
+	void MoveEyeForward(float coefficient = 1.f, bool refresh = true);
+	void MoveEyeBackward(float coefficient = 1.f, bool refresh = true);
+	void MoveEyeUp(float coefficient = 1.f, bool refresh = true);
+	void MoveEyeDown(float coefficient = 1.f, bool refresh = true);
 
-    __device__ Ray RayGen(int x, int y, curandState* state);
+	void RotateAroundUp(float dy, bool refresh = true);
+	void RotateAroundDown(float dy, bool refresh = true);
+	void RotateAroundLeft(float dx, bool refresh = true);
+	void RotateAroundRight(float dx, bool refresh = true);
+	void ScaleFov(float d, bool refresh = true);
+
+	void Updata();
+	void Refresh();
+
+	__device__ Ray RayGen(int x, int y, curandState& state);
 };
-
-#endif

@@ -1,52 +1,36 @@
-#ifndef RAY_TRACER_H_3252363
-#define RAY_TRACER_H_3252363
+#pragma once
 
-#include <vector>
+#include <memory>
 
+#include "ray_tracing_common.h"
+#include "ray_tracing_math.hpp"
 #include "bvh.h"
 #include "motional_camera.h"
 #include "object.h"
-#include "path_tracing_common.h"
-
-#define MMAX_RECURSION_DEPTH 32
 
 class PathTracer {
-private:
-    int width_;
-    int height_;
-    cudaTextureObject_t sky_tex_obj_;
-    uint spp_ = 5;
-    uint8_t max_recursion_depth_ = 12;
-    Float4* render_target_;
-    float* depth_info_buffer_;
-    Float4* normal_info_buffer_;
-    uint8_t* output_buffer_gpu_handle_;
-
-    MotionalCamera* camera_;
-    MotionalCamera* camera_gpu_handle_;
-
-    std::vector<Material*> materials_;
-
-    std::vector<Object*> objs_;
-
-    curandState* d_rng_states_;
-
-    BVHNode* bvh_root_;
-
 public:
-    void AddMeterial(Material* material);
+	void AddObject(Object* obj);
 
-    void AddObject(Object* obj);
+	void Init();
 
-    void AllocateGpuMemory();
+	void Refresh();
 
-    void DispatchRay(uint8_t* buf, int size, int64_t t);
+	void DispatchRay(DispatchRayArgs args);
 
-    void ReSize(int width, int height);
+	void SetCamera(std::shared_ptr<MotionalCamera>& camera);
 
-    void SetCamera(MotionalCamera* camera);
+	std::shared_ptr<MotionalCamera> GetCamera();
 
-    void SetSamplePerPixel(uint spp);
+private:
+	uint8_t max_recursion_depth_ = 12;
+	float* depth_info_buffer_;
+	float3* normal_info_buffer_;
+	uint8_t* output_buffer_gpu_handle_;
+
+	std::unique_ptr<SceneBVHGPUHandle> scene_bvh_;
+
+	std::shared_ptr<MotionalCamera> camera_;
+
+	std::vector<Material*> materials_;
 };
-
-#endif  // RAY_TRACER_H_3252363
