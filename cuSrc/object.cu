@@ -139,10 +139,10 @@ float3 Object::GetAABBMax() {
 		AABB_max = center_ + make_float3(ABS(radius_));
 		break;
 	case PrimitiveType::Platform:
-		AABB_max = make_float3(1e10f, y_pos_ + tolerance, 1e10f);
+		AABB_max = make_float3(DEFAULT_RAY_TMAX, y_pos_ + tolerance, DEFAULT_RAY_TMAX);
 		break;
 	case PrimitiveType::Cylinder:
-		AABB_max = make_float3(center_.x + radius_, center_.y + height_ / 2 + tolerance, center_.z + radius_);
+		AABB_max = make_float3(center_.x + ABS(radius_), center_.y + height_ / 2 + tolerance, center_.z + ABS(radius_));
 		break;
 	default:
 		break;
@@ -158,10 +158,10 @@ float3 Object::GetAABBMin() {
 		AABB_min = center_ - make_float3(ABS(radius_));
 		break;
 	case PrimitiveType::Platform:
-		AABB_min = make_float3(-1e10f, y_pos_ - tolerance, -1e10f);
+		AABB_min = make_float3(-DEFAULT_RAY_TMAX, y_pos_ - tolerance, -DEFAULT_RAY_TMAX);
 		break;
 	case PrimitiveType::Cylinder:
-		AABB_min = make_float3(center_.x - radius_, center_.y - height_ / 2 - tolerance, center_.z - radius_);
+		AABB_min = make_float3(center_.x - ABS(radius_), center_.y - height_ / 2 - tolerance, center_.z - ABS(radius_));
 		break;
 	default:
 		break;
@@ -169,7 +169,7 @@ float3 Object::GetAABBMin() {
 	return AABB_min;
 }
 
-Object::Object() {
+__device__ __host__ Object::Object() {
 	type_ = PrimitiveType::Sphere;
 	center_ = make_float3(0.f);
 	radius_ = 0.f;

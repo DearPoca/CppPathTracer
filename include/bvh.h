@@ -19,7 +19,7 @@ public:
 
 	static void ReleaseBVH();
 
-	__device__ Object* TraceRay(Ray& ray, IntersectionAttributes& attr);
+	__device__ bool TraceRay(Ray ray, IntersectionAttributes& attr, Object &ret);
 private:
 	static SceneBVH* Divide(std::vector<Object*>& objs, int l, int r);
 

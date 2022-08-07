@@ -163,16 +163,19 @@ void SceneBVH::ReleaseBVH() {
 	bvh_node_pars.clear();
 }
 
-__device__ Object* SceneBVH::TraceRay(Ray& ray, IntersectionAttributes& attr) {
+__device__ bool SceneBVH::TraceRay(Ray ray, IntersectionAttributes& attr, Object& obj) {
 	SceneBVH* stack[512];
 	int top = 0;
 	stack[top++] = this;
-	Object* ret = nullptr;
+	bool ret = false;
 	while (top > 0) {
 		SceneBVH* node = stack[--top];
 		if (node == nullptr) continue;
 		if (node->is_object_) {
-			if (node->obj_.IntersectionTest(ray, attr)) ret = &(node->obj_);
+			if (node->obj_.IntersectionTest(ray, attr)) {
+				obj = node->obj_;
+				ret = true;
+			}
 		}
 		float local_tmin = -DEFAULT_RAY_TMAX, local_tmax = DEFAULT_RAY_TMAX;
 		if (ray.dir.x != 0.f) {

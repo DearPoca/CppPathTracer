@@ -9,7 +9,7 @@
 #include "ray_tracing_math.hpp"
 #include "ray_tracing_common.h"
 
-std::mutex camera_mutex;
+static std::mutex camera_mutex;
 
 MotionalCamera::MotionalCamera() :
 	width_(1920),
@@ -41,151 +41,159 @@ MotionalCamera::MotionalCamera(int width, int height, float3 ori, float3 at) :
 MotionalCamera::~MotionalCamera() {}
 
 void MotionalCamera::Refresh() {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	cur_sample_idx_ = 0;
 }
 
 void MotionalCamera::SetViewFov(float fov) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	view_fov_ = fov;
 }
 
 void MotionalCamera::Resize(int width, int height) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	width_ = width;
 	height_ = height;
 }
 
 void MotionalCamera::SetOrigin(float3 ori) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	origin_ = ori;
 }
 
 void MotionalCamera::SetOrigin(float x, float y, float z) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	origin_.x = x;
 	origin_.y = y;
 	origin_.z = z;
 }
 
 void MotionalCamera::SetLookAt(float3 look_at) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	look_at_ = look_at;
 }
 
 void MotionalCamera::SetLookAt(float x, float y, float z) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
 	look_at_.x = x;
 	look_at_.y = y;
 	look_at_.z = z;
 }
 
 void MotionalCamera::MoveEyeLeft(float coefficient) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	float3 w = normalize(origin_ - look_at_);
-	float3 left = normalize(cross(vup, w));
+	float3 left = -normalize(cross(vup, w));
 
 	origin_ += coefficient * move_speed_ * left;
 	look_at_ += coefficient * move_speed_ * left;
 }
 
 void MotionalCamera::MoveEyeRight(float coefficient) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	float3 w = normalize(origin_ - look_at_);
-	float3 left = normalize(cross(vup, w));
+	float3 left = -normalize(cross(vup, w));
 
 	origin_ -= coefficient * move_speed_ * left;
 	look_at_ -= coefficient * move_speed_ * left;
 }
 
 void MotionalCamera::MoveEyeForward(float coefficient) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	float3 w = normalize(origin_ - look_at_);
-	float3 left = normalize(cross(vup, w));
-	float3 back = normalize(cross(left, vup));
+	float3 left = -normalize(cross(vup, w));
+	float3 back = -normalize(cross(left, vup));
 
 	origin_ -= coefficient * move_speed_ * back;
 	look_at_ -= coefficient * move_speed_ * back;
 }
 
 void MotionalCamera::MoveEyeBackward(float coefficient) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	float3 w = normalize(origin_ - look_at_);
-	float3 left = normalize(cross(vup, w));
-	float3 back = normalize(cross(left, vup));
+	float3 left = -normalize(cross(vup, w));
+	float3 back = -normalize(cross(left, vup));
 
 	origin_ += coefficient * move_speed_ * back;
 	look_at_ += coefficient * move_speed_ * back;
 }
 
 void MotionalCamera::MoveEyeUp(float coefficient) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	origin_ += coefficient * move_speed_ * vup;
 	look_at_ += coefficient * move_speed_ * vup;
 }
 
 void MotionalCamera::MoveEyeDown(float coefficient) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	origin_ -= coefficient * move_speed_ * vup;
 	look_at_ -= coefficient * move_speed_ * vup;
 }
 
 void MotionalCamera::RotateAroundUp(float dy) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
+	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	look_at_ = origin_ + normalize(look_at_ - origin_);
-	look_at_ += dy * vup;
-	look_at_ = origin_ + normalize(look_at_ - origin_);
+	float3 Rx[3] = {
+		make_float3(1.f,0.f,0.f),
+		make_float3(0.f,cos(-dy * M_PI / 2),-sin(-dy * M_PI / 2)),
+		make_float3(0.f,sin(-dy * M_PI / 2),cos(-dy * M_PI / 2))
+	};
+	float3 w = normalize(look_at_ - origin_);
+	float3 d;
+	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
+	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
+	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
+	look_at_ = origin_ + normalize(d);
 }
 
 void MotionalCamera::RotateAroundDown(float dy) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
+	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	look_at_ = origin_ + normalize(look_at_ - origin_);
-	look_at_ -= dy * vup;
-	look_at_ = origin_ + normalize(look_at_ - origin_);
+	float3 Rx[3] = {
+		make_float3(1.f,0.f,0.f),
+		make_float3(0.f,cos(dy * M_PI / 2),-sin(dy * M_PI / 2)),
+		make_float3(0.f,sin(dy * M_PI / 2),cos(dy * M_PI / 2))
+	};
+	float3 w = normalize(look_at_ - origin_);
+	float3 d;
+	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
+	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
+	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
+	look_at_ = origin_ + normalize(d);
 }
 
 void MotionalCamera::RotateAroundLeft(float dx) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	float3 w = normalize(origin_ - look_at_);
-	float3 left = normalize(cross(vup, w));
-
-	look_at_ += dx * left;
-	look_at_ = origin_ + normalize(look_at_ - origin_);
+	float3 Rx[3] = {
+		make_float3(cos(-dx * M_PI / 2),0.f,sin(-dx * M_PI / 2)),
+		make_float3(0.f,1.f,0.f),
+		make_float3(-sin(-dx * M_PI / 2),0.f,cos(-dx * M_PI / 2))
+	};
+	float3 w = normalize(look_at_ - origin_);
+	float3 d;
+	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
+	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
+	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
+	look_at_ = origin_ + normalize(d);
 }
 
 void MotionalCamera::RotateAroundRight(float dx) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	float3 w = normalize(origin_ - look_at_);
-	float3 left = normalize(cross(vup, w));
-	float3 back = normalize(cross(left, vup));
-
-	look_at_ -= dx * left;
-	look_at_ = origin_ + normalize(look_at_ - origin_);
+	float3 Rx[3] = {
+		make_float3(cos(-dx * M_PI / 2),0.f,sin(-dx * M_PI / 2)),
+		make_float3(0.f,1.f,0.f),
+		make_float3(-sin(-dx * M_PI / 2),0.f,cos(-dx * M_PI / 2))
+	};
+	float3 w = normalize(look_at_ - origin_);
+	float3 d;
+	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
+	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
+	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
+	look_at_ = origin_ + normalize(d);
 }
 
 void MotionalCamera::ScaleFov(float d) {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
-
 	view_fov_ += d * M_PI / 180.0f;
 }
 
-MotionalCamera MotionalCamera::GetCopy() {
-	std::lock_guard<std::mutex> lock_guard(camera_mutex);
+void MotionalCamera::Lock() {
+	camera_mutex.lock();
+}
+void MotionalCamera::Unlock() {
+	camera_mutex.unlock();
+}
 
+MotionalCamera MotionalCamera::GetCopy() {
+	std::lock_guard<std::mutex> lock(camera_mutex);
 	float theta = view_fov_ * M_PI / 180;
 	float aspectRatio = float(width_) / float(height_);
 	float half_height = tan(theta / 2);

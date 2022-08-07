@@ -28,15 +28,13 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 	path_tracer_->SetCamera(std::shared_ptr<MotionalCamera>(
 		new MotionalCamera(
 			width, height,
-			make_float3(13.f, 13.f, 13.f), 
+			make_float3(13.f, 103.f, 13.f),
 			make_float3(0.f, 0.f, 0.f))));
 	{
 		// 创建材质库
 		std::vector<Material*> materials = { new Material };
-		materials[0]->type_ = MaterialType::Metal;
-		materials[0]->smoothness_ = 1.5f;
-		materials[0]->reflectivity_ = 0.4f;
-		materials[0]->kd_ = make_float3(0.95f, 0.96f, 0.99f);
+		materials[0]->type_ = MaterialType::Diffuse;
+		materials[0]->kd_ = make_float3(0.95f, 0.96f, 0.70f);
 		for (int i = 1; i < 20; ++i) {
 			materials.push_back(new Material);
 			materials[i]->kd_ = create_random_float3();
@@ -62,42 +60,11 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 				materials[i]->type_ = MaterialType::Diffuse;
 			}
 		}
-		{
-			materials.push_back(new Material);
-			materials[20]->kd_ = make_float3(0.8f, 1.f, 1.f);
-			materials[20]->type_ = MaterialType::Mirror;
-			materials[20]->smoothness_ = 2.5f;
-		}
-		{
-			materials.push_back(new Material);
-			materials[21]->kd_ = 0.2f + 0.8f * create_random_float3();
-			materials[21]->type_ = MaterialType::Metal;
-			materials[21]->smoothness_ = 0.8f;
-			materials[21]->reflectivity_ = 0.7f;
-		}
-		{
-			materials.push_back(new Material);
-			materials[22]->kd_ = make_float3(1.f);
-			materials[22]->type_ = MaterialType::Glass;
-			materials[22]->smoothness_ = 3.f;
-			materials[22]->refractive_index_ = 1.5f;
-		}
-		{
-			materials.push_back(new Material);
-			materials[23]->kd_ = 0.2f + 0.8f * create_random_float3();
-			materials[23]->type_ = MaterialType::Diffuse;
-		}
-		{
-			materials.push_back(new Material);
-			materials[24]->kd_ = 0.7f + 0.3f * create_random_float3();
-			materials[24]->type_ = MaterialType::Diffuse;
-		}
 
 		// 创建物体库
 		Object* floor = new Object();
 		floor->material_ = *materials[0];
-		floor->type_ = PrimitiveType::Platform;
-		floor->y_pos_ = 0.f;
+		floor->type_ = PrimitiveType::Sphere;
 		floor->center_ = make_float3(0, -10000.f, 0);
 		floor->radius_ = 10000.f;
 		path_tracer_->AddObject(floor);
@@ -108,7 +75,7 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 			if (rnd == 0) {
 				obj->type_ = PrimitiveType::Sphere;
 				obj->material_ = *materials[rand() % 20];
-				obj->radius_ = random() * 5.f + 1.f;
+				obj->radius_ = random() * 15.f + 1.f;
 				obj->center_ = make_float3(random() * 300.f - 150.f, obj->radius_, float(i));
 				path_tracer_->AddObject(obj);
 				if (obj->material_.type_ == MaterialType::Glass && random() > 0.5f) {
@@ -121,8 +88,8 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 			}
 			else {
 				obj->type_ = PrimitiveType::Cylinder;
-				obj->material_ = *materials[int(random() * 2048) % 5 + 20];
-				obj->radius_ = random() * 5.f + 1.f;
+				obj->material_ = *materials[rand() % 20];
+				obj->radius_ = random() * 15.f + 1.f;
 				obj->height_ = obj->radius_ / 2 + random() * 20.f;
 				obj->center_ = make_float3(random() * 300.f - 150.f, obj->height_ / 2, float(i));
 				path_tracer_->AddObject(obj);
@@ -175,11 +142,13 @@ void VideoRenderer::OnRender() {
 	int u_d = key_up_pressed_ - key_down_pressed_;
 	if (l_r || f_b || u_d) {
 		auto camera = path_tracer_->GetCamera();
+		camera->Lock();
 		float div = sqrt(float(l_r * l_r + f_b * f_b + u_d * u_d));
 		camera->MoveEyeLeft(float(l_r) / div);
 		camera->MoveEyeForward(float(f_b) / div);
 		camera->MoveEyeUp(float(u_d) / div);
 		camera->Refresh();
+		camera->Unlock();
 	}
 	dispatch_ray_args_.cbParam = this;
 	dispatch_ray_args_.Callback = OnFrameCallback;
@@ -216,14 +185,18 @@ void VideoRenderer::OnMouseMove(WPARAM btnState, int x, int y) {
 	if ((btnState & MK_LBUTTON) != 0)
 	{
 		// Make each pixel correspond to a quarter of a degree.
-		float dx = 0.025f * static_cast<float>(x - last_mouse_pos_.x);
-		float dy = 0.025f * static_cast<float>(y - last_mouse_pos_.y);
+		tagRECT rect;
+		GetWindowRect(wnd_, &rect);
+		float dx = static_cast<float>(x - last_mouse_pos_.x) / float(rect.right - rect.left);
+		float dy = static_cast<float>(y - last_mouse_pos_.y) / float(rect.bottom - rect.top);
 
 		// Rotate camera.
 		auto camera = path_tracer_->GetCamera();
-		camera->RotateAroundUp(dx);
-		camera->RotateAroundLeft(dy);
+		camera->Lock();
+		camera->RotateAroundUp(dy);
+		camera->RotateAroundLeft(dx);
 		camera->Refresh();
+		camera->Unlock();
 	}
 
 	else if ((btnState & MK_RBUTTON) != 0)
@@ -234,8 +207,10 @@ void VideoRenderer::OnMouseMove(WPARAM btnState, int x, int y) {
 
 		// Zoom in or out.
 		auto camera = path_tracer_->GetCamera();
+		camera->Lock();
 		camera->ScaleFov(dx - dy);
 		camera->Refresh();
+		camera->Unlock();
 	}
 
 	last_mouse_pos_.x = x;

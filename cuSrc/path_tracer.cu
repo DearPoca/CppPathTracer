@@ -111,7 +111,7 @@ __device__ void Miss(RayPayload& payload) {
 	float3 d = normalize(payload.ray.dir);
 	float v = asin(d.z) / M_PI + 0.5, u = atan(d.y / d.x) / 2 / M_PI;
 	payload.radiance = make_float3(GetTexture2D(payload.sky_tex_obj, u, v));
-	payload.radiance = make_float3(ABS(d.x), ABS(d.y), ABS(d.z));
+	payload.radiance = make_float3(ABS(d.x), ABS(d.y), ABS(d.z)) / 3;
 	payload.recursion_depth = MAX_RECURSION_DEPTH_SET;
 }
 
@@ -133,10 +133,11 @@ __global__ void SamplePixel(PathTracerParams params) {
 
 	while (payload.recursion_depth < params.max_recursion_depth) {
 		IntersectionAttributes attr;
-		Object* closet_hit_obj = params.bvh_root->TraceRay(payload.ray, attr);
+		Object closet_hit_obj;
+		bool ret = params.bvh_root->TraceRay(payload.ray, attr, closet_hit_obj);
 
-		if (closet_hit_obj != nullptr) {
-			closet_hit_obj->ClosetHit(payload, attr);
+		if (ret) {
+			closet_hit_obj.ClosetHit(payload, attr);
 			//printf("[%f, %f, %f]\n", payload.attenuation.x, payload.attenuation.y, payload.attenuation.z);
 		}
 		else {

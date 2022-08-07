@@ -13,10 +13,10 @@ public:
 
 	float3 origin_;
 	float3 look_at_;
-	float view_fov_ = 20;        //йс╫г
+	float view_fov_ = 30;        //йс╫г
 	float dist_to_focus_ = 10;   //╫╧╬Ю
-	float lens_radius_ = 0.05f;  //©в╟К╬╤
-	float move_speed_ = 5.f;
+	float lens_radius_ = 0.005f;  //©в╟К╬╤
+	float move_speed_ = 50.f;
 
 	float3 u_, v_, w_;
 	float3 top_left_corner_;
@@ -54,6 +54,8 @@ public:
 
 	MotionalCamera GetCopy();
 	void Refresh();
+	void Lock();
+	void Unlock();
 
 	__device__ Ray RayGen(int x, int y, curandState& state);
 };
