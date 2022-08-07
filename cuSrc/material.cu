@@ -20,7 +20,7 @@ __device__ float3 Material::GetKd(float x, float y) {
 __device__ void DiffuseHitShader(Material& self,
 	RayPayload& payload, float3& position, float3& normal, float3& in_ray_dir, float x, float y) {
 	float3 wi = -in_ray_dir;
-	float x_1 = random(payload.d_rng_states), x_2 = random(payload.d_rng_states);
+	float x_1 = random(*payload.d_rng_states), x_2 = random(*payload.d_rng_states);
 	float z = pow(x_1, 1.0 / 2);
 	float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
 	float3 localRay = make_float3(r * cos(phi), r * sin(phi), z);
@@ -40,7 +40,7 @@ __device__ void MirrorHitShader(Material& self,
 	RayPayload& payload, float3& position, float3& normal, float3& in_ray_dir, float x, float y) {
 	float s = self.smoothness_;
 	float alpha = pow(1000.0f, s);
-	float x_1 = random(payload.d_rng_states), x_2 = random(payload.d_rng_states);
+	float x_1 = random(*payload.d_rng_states), x_2 = random(*payload.d_rng_states);
 	float z = pow(x_1, 1.0 / alpha);
 	float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
 	float3 localRay = make_float3(r * cos(phi), r * sin(phi), z);
@@ -63,7 +63,7 @@ __device__ void MirrorHitShader(Material& self,
 
 __device__ void MetalHitShader(Material& self,
 	RayPayload& payload, float3& position, float3& normal, float3& in_ray_dir, float x, float y) {
-	float x_1 = random(payload.d_rng_states), x_2 = random(payload.d_rng_states);
+	float x_1 = random(*payload.d_rng_states), x_2 = random(*payload.d_rng_states);
 	float s = self.smoothness_;
 	float alpha = pow(1000.0f, s);
 	float r, z, phi;
@@ -72,7 +72,7 @@ __device__ void MetalHitShader(Material& self,
 
 	float reflectivity = self.reflectivity_;
 
-	if (random(payload.d_rng_states) < reflectivity) {
+	if (random(*payload.d_rng_states) < reflectivity) {
 		z = pow(x_1, 1.0 / alpha);
 		r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
 		localRay = make_float3(r * cos(phi), r * sin(phi), z);
@@ -97,7 +97,7 @@ __device__ void MetalHitShader(Material& self,
 
 __device__ void GlassHitShader(Material& self,
 	RayPayload& payload, float3& position, float3& normal, float3& in_ray_dir, float x, float y) {
-	float x_1 = random(payload.d_rng_states), x_2 = random(payload.d_rng_states);
+	float x_1 = random(*payload.d_rng_states), x_2 = random(*payload.d_rng_states);
 	float alpha = pow(1000.0f, self.smoothness_);
 	float z = pow(x_1, 1.0 / alpha);
 	float r = sqrt(1.0f - z * z), phi = 2 * M_PI * x_2;
@@ -127,7 +127,7 @@ __device__ void GlassHitShader(Material& self,
 	else {
 		reflect_prob = 1.0;
 	}
-	if (random(payload.d_rng_states) < reflect_prob) {
+	if (random(*payload.d_rng_states) < reflect_prob) {
 		float3 reflected = reflect(in_ray_dir, normal);
 		payload.bounce_dir = to_world(localRay, reflected);
 	}

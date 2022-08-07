@@ -26,7 +26,7 @@ struct RayPayload {
 	float3 bounce_dir;	// ∑¥…‰∑ΩœÚ
 	uint recursion_depth;
 	cudaTextureObject_t sky_tex_obj;
-	curandState d_rng_states;
+	curandState* d_rng_states;
 };
 
 struct IntersectionAttributes {
@@ -34,14 +34,7 @@ struct IntersectionAttributes {
 	float3 hit_pos;
 };
 
-namespace PocaFormatType {
-	enum  Enum {
-		ARGB = 0,
-		RGB24
-	};
-}
-
 struct DispatchRayArgs {
-	uint8_t* buf;
-	PocaFormatType::Enum type;
+	void* cbParam;
+	void (*Callback)(uint8_t* data, int width, int height, void* cbParam);
 };

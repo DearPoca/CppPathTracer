@@ -154,6 +154,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\bvh.h" />
+    <ClInclude Include="include\logger.hpp" />
     <ClInclude Include="include\main_wnd.h" />
     <ClInclude Include="include\material.h" />
     <ClInclude Include="include\motional_camera.h" />
@@ -163,6 +164,7 @@
     <ClInclude Include="include\ray_tracing_math.hpp" />
     <ClInclude Include="include\semaphore.h" />
     <ClInclude Include="include\textures.h" />
+    <ClInclude Include="include\timer.hpp" />
     <ClInclude Include="include\video_renderer.h" />
     <ClInclude Include="opencv2\calib3d.hpp" />
     <ClInclude Include="opencv2\calib3d\calib3d.hpp" />
@@ -503,40 +505,40 @@
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostDefines>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shared</CudaRuntime>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shared</CudaRuntime>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExtensibleWholeProgramCompilation>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExtensibleWholeProgramCompilation>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateRelocatableDeviceCode>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateRelocatableDeviceCode>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExtensibleWholeProgramCompilation>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExtensibleWholeProgramCompilation>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaCompile Include="cuSrc\material.cu">
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</UseHostDefines>
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostDefines>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shared</CudaRuntime>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shared</CudaRuntime>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExtensibleWholeProgramCompilation>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExtensibleWholeProgramCompilation>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateRelocatableDeviceCode>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateRelocatableDeviceCode>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExtensibleWholeProgramCompilation>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExtensibleWholeProgramCompilation>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaCompile Include="cuSrc\motional_camera.cu">
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</UseHostDefines>
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostDefines>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shared</CudaRuntime>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shared</CudaRuntime>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExtensibleWholeProgramCompilation>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExtensibleWholeProgramCompilation>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateRelocatableDeviceCode>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateRelocatableDeviceCode>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExtensibleWholeProgramCompilation>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExtensibleWholeProgramCompilation>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaCompile Include="cuSrc\object.cu">
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</UseHostDefines>
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostDefines>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shared</CudaRuntime>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shared</CudaRuntime>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExtensibleWholeProgramCompilation>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExtensibleWholeProgramCompilation>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateRelocatableDeviceCode>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateRelocatableDeviceCode>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExtensibleWholeProgramCompilation>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExtensibleWholeProgramCompilation>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaCompile Include="cuSrc\path_tracer.cu">
       <KeepDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(CudaIntDir);$(SolutionDir)Common</KeepDir>
@@ -545,20 +547,20 @@
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostDefines>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shared</CudaRuntime>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shared</CudaRuntime>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExtensibleWholeProgramCompilation>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExtensibleWholeProgramCompilation>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateRelocatableDeviceCode>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateRelocatableDeviceCode>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExtensibleWholeProgramCompilation>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExtensibleWholeProgramCompilation>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
     <CudaCompile Include="cuSrc\textures.cu">
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</UseHostDefines>
       <UseHostDefines Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostDefines>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Shared</CudaRuntime>
       <CudaRuntime Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Shared</CudaRuntime>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExtensibleWholeProgramCompilation>
-      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExtensibleWholeProgramCompilation>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</GenerateRelocatableDeviceCode>
-      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</GenerateRelocatableDeviceCode>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExtensibleWholeProgramCompilation>
+      <ExtensibleWholeProgramCompilation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExtensibleWholeProgramCompilation>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</GenerateRelocatableDeviceCode>
+      <GenerateRelocatableDeviceCode Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>

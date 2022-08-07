@@ -22,6 +22,7 @@ public:
 	void OnKeyUp(UINT8 key);
 	void OnKeyDown(UINT8 key);
 	void SetSize(int width, int height);
+	void OnFrame(uint8_t* data, int width, int height);
 
 	const BITMAPINFO& bmi() const { return bmi_; }
 	const uint8_t* image() const { return image_.get(); }
@@ -32,8 +33,11 @@ private:
 	std::unique_ptr<uint8_t> image_;
 	std::mutex mux_;
 
+	int width_ = 1280;
+	int height_ = 720;
 	std::shared_ptr<PathTracer> path_tracer_;
 	DispatchRayArgs dispatch_ray_args_;
+	void ResetOutBufSize(int width, int height);
 
 	POINT last_mouse_pos_;
 	int key_left_pressed_;

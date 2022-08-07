@@ -106,10 +106,10 @@ SceneBVH* SceneBVH::BuildBVHInGpu(SceneBVH* node_cpu_handle) {
 	return ret;
 }
 
-SceneBVHGPUHandle* SceneBVH::BuildBVH() {
+SceneBVHGPUHandle SceneBVH::BuildBVH() {
 	bvh_cpu_root_handle = BuildBVHInCpu(bvh_objs);
 	bvh_node_pars[bvh_cpu_root_handle] = nullptr;
-	return (SceneBVHGPUHandle*)BuildBVHInGpu(bvh_cpu_root_handle);
+	return (SceneBVHGPUHandle)BuildBVHInGpu(bvh_cpu_root_handle);
 }
 
 void SceneBVH::UpdateSceneBVH(SceneBVH* node_cpu_handle) {

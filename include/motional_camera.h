@@ -4,8 +4,8 @@
 #include "ray_tracing_common.h"
 
 class MotionalCamera {
-private:
-	const float3 vup = make_float3(0.0f, 1.0f, 0.0f);
+public:
+	float3 vup = make_float3(0.0f, 1.0f, 0.0f);
 
 	int width_;
 	int height_;
@@ -16,7 +16,7 @@ private:
 	float view_fov_ = 20;        //ÊÓ½Ç
 	float dist_to_focus_ = 10;   //½¹¾à
 	float lens_radius_ = 0.05f;  //¿×°ë¾¶
-	float move_speed_ = 0.005f;
+	float move_speed_ = 5.f;
 
 	float3 u_, v_, w_;
 	float3 top_left_corner_;
@@ -39,20 +39,20 @@ public:
 
 	void SetViewFov(float fov);
 
-	void MoveEyeLeft(float coefficient = 1.f, bool refresh = true);
-	void MoveEyeRight(float coefficient = 1.f, bool refresh = true);
-	void MoveEyeForward(float coefficient = 1.f, bool refresh = true);
-	void MoveEyeBackward(float coefficient = 1.f, bool refresh = true);
-	void MoveEyeUp(float coefficient = 1.f, bool refresh = true);
-	void MoveEyeDown(float coefficient = 1.f, bool refresh = true);
+	void MoveEyeLeft(float coefficient = 1.f);
+	void MoveEyeRight(float coefficient = 1.f);
+	void MoveEyeForward(float coefficient = 1.f);
+	void MoveEyeBackward(float coefficient = 1.f);
+	void MoveEyeUp(float coefficient = 1.f);
+	void MoveEyeDown(float coefficient = 1.f);
 
-	void RotateAroundUp(float dy, bool refresh = true);
-	void RotateAroundDown(float dy, bool refresh = true);
-	void RotateAroundLeft(float dx, bool refresh = true);
-	void RotateAroundRight(float dx, bool refresh = true);
-	void ScaleFov(float d, bool refresh = true);
+	void RotateAroundUp(float dy);
+	void RotateAroundDown(float dy);
+	void RotateAroundLeft(float dx);
+	void RotateAroundRight(float dx);
+	void ScaleFov(float d);
 
-	void Updata();
+	MotionalCamera GetCopy();
 	void Refresh();
 
 	__device__ Ray RayGen(int x, int y, curandState& state);

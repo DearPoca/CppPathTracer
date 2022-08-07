@@ -27,8 +27,7 @@ __device__ bool SphereIntersectionTest(Object& self, Ray& ray, IntersectionAttri
 		if (temp < ray.tmax && temp > ray.tmin) {
 			ray.tmax = temp;
 			attr.hit_pos = ray.origin + temp * ray.dir;
-			float3 normal = (attr.hit_pos - self.center_);
-			attr.normal = normal / self.radius_;
+			attr.normal = normalize(attr.hit_pos - self.center_);
 			return true;
 		}
 	}

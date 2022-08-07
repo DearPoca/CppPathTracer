@@ -1055,6 +1055,12 @@
     <ClInclude Include="include\semaphore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\timer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\logger.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cuSrc\textures.cu" />

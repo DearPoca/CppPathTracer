@@ -85,6 +85,12 @@ __device__ inline curandState init_rand_state(int x, int y) {
 	return rgnState;
 }
 
+__device__ inline curandState init_rand_state(unsigned long long clock, int x, int y) {
+	curandState rgnState;
+	curand_init(clock, uint64_t(x) << 32 | uint64_t(y), 0, &rgnState);
+	return rgnState;
+}
+
 __device__ inline float random(curandState& state) {
 	return curand_uniform(&state);
 }

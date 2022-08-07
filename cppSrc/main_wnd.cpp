@@ -1,5 +1,8 @@
 #include "main_wnd.h"
+
 #include <WindowsX.h>
+
+#include "logger.hpp"
 
 HFONT GetDefaultFont() {
 	static HFONT font = reinterpret_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
@@ -32,10 +35,11 @@ int MainWnd::Create() {
 	windowClass.cbSize = sizeof(WNDCLASSEX);
 	windowClass.style = CS_HREDRAW | CS_VREDRAW;
 	windowClass.lpfnWndProc = WindowProc;
-	windowClass.hInstance = GetModuleHandle(nullptr);
+	windowClass.hInstance = GetModuleHandle(NULL);
 	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	windowClass.lpszClassName = "MainWnd";
 	if (!RegisterClassEx(&windowClass)) {
+		log_error("RegisterClassEx Failed");
 		exit(-1);
 	}
 
@@ -120,7 +124,6 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		main_wnd->GetRenderer()->OnKeyUp(static_cast<UINT8>(wParam));
 		return 0;
 	case WM_PAINT:
-		main_wnd->GetRenderer()->OnRender();
 		main_wnd->OnPaint();
 		return 0;
 
@@ -169,7 +172,6 @@ void MainWnd::OnPaint() {
 	if (renderer) {
 		std::lock_guard<VideoRenderer> lock(*renderer);
 
-		renderer->OnRender();
 		const BITMAPINFO& bmi = renderer->bmi();
 		int height = abs(bmi.bmiHeader.biHeight);
 		int width = bmi.bmiHeader.biWidth;
@@ -213,7 +215,7 @@ void MainWnd::OnPaint() {
 		}
 	}
 	::EndPaint(handle(), &ps);
-	InvalidateRect(wnd_, nullptr, false);
+	renderer->OnRender();
 }
 
 void MainWnd::OnDestroyed() {

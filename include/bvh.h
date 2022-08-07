@@ -13,7 +13,7 @@ class SceneBVH {
 public:
 	static void AddObject(Object* obj);
 
-	static SceneBVHGPUHandle* BuildBVH();
+	static SceneBVHGPUHandle BuildBVH();
 
 	static void UpdateObject(Object* obj);
 
