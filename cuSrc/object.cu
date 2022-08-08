@@ -139,7 +139,7 @@ float3 Object::GetAABBMax() {
 		AABB_max = center_ + make_float3(ABS(radius_));
 		break;
 	case PrimitiveType::Platform:
-		AABB_max = make_float3(DEFAULT_RAY_TMAX, y_pos_ + tolerance, DEFAULT_RAY_TMAX);
+		AABB_max = make_float3(DEFAULT_RAY_TMAX * 5, y_pos_ + tolerance, DEFAULT_RAY_TMAX * 5);
 		break;
 	case PrimitiveType::Cylinder:
 		AABB_max = make_float3(center_.x + ABS(radius_), center_.y + height_ / 2 + tolerance, center_.z + ABS(radius_));
@@ -158,7 +158,7 @@ float3 Object::GetAABBMin() {
 		AABB_min = center_ - make_float3(ABS(radius_));
 		break;
 	case PrimitiveType::Platform:
-		AABB_min = make_float3(-DEFAULT_RAY_TMAX, y_pos_ - tolerance, -DEFAULT_RAY_TMAX);
+		AABB_min = make_float3(-DEFAULT_RAY_TMAX * 5, y_pos_ - tolerance, -DEFAULT_RAY_TMAX * 5);
 		break;
 	case PrimitiveType::Cylinder:
 		AABB_min = make_float3(center_.x - ABS(radius_), center_.y - height_ / 2 - tolerance, center_.z - ABS(radius_));

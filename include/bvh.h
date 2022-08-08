@@ -21,20 +21,20 @@ public:
 
 	__device__ bool TraceRay(Ray ray, IntersectionAttributes& attr, Object &ret);
 private:
-	static SceneBVH* Divide(std::vector<Object*>& objs, int l, int r);
+	static int Divide(std::vector<Object*>& objs, int l, int r);
 
-	static SceneBVH* BuildBVHInCpu(std::vector<Object*>& objs);
+	static void BuildBVHInCpu(std::vector<Object*>& objs);
 
-	static SceneBVH* BuildBVHInGpu(SceneBVH* node_cpu_handle);
+	static SceneBVHGPUHandle BuildBVHInGpu();
 
-	static void UpdateSceneBVH(SceneBVH* node_cpu_handle);
+	static void UpdateSceneBVH(int node_idx);
 
 	float3 AABB_min_;
 	float3 AABB_max_;
 
 	bool is_object_;
-	SceneBVH* left_son_;
-	SceneBVH* right_son_;
+	int left_son_;
+	int right_son_;
 	Object obj_;
 };
 

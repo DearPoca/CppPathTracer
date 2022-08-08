@@ -14,8 +14,8 @@ public:
 	float3 origin_;
 	float3 look_at_;
 	float view_fov_ = 30;        //ÊÓ½Ç
-	float dist_to_focus_ = 10;   //½¹¾à
-	float lens_radius_ = 0.005f;  //¿×°ë¾¶
+	float dist_to_focus_ = 100;   //½¹¾à
+	float lens_radius_ = 0.0005f;  //¿×°ë¾¶
 	float move_speed_ = 50.f;
 
 	float3 u_, v_, w_;

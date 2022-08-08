@@ -8,7 +8,7 @@
 
 #include "ray_tracing_math.hpp"
 
-#define DEFAULT_RAY_TMAX 1e10f
+#define DEFAULT_RAY_TMAX 1e30f
 #define BOUNCE_RAY_TMIN 2e-5f
 
 struct Ray {

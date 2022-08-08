@@ -111,7 +111,6 @@ __device__ void Miss(RayPayload& payload) {
 	float3 d = normalize(payload.ray.dir);
 	float v = asin(d.z) / M_PI + 0.5, u = atan(d.y / d.x) / 2 / M_PI;
 	payload.radiance = make_float3(GetTexture2D(payload.sky_tex_obj, u, v));
-	payload.radiance = make_float3(ABS(d.x), ABS(d.y), ABS(d.z)) / 3;
 	payload.recursion_depth = MAX_RECURSION_DEPTH_SET;
 }
 
@@ -138,7 +137,7 @@ __global__ void SamplePixel(PathTracerParams params) {
 
 		if (ret) {
 			closet_hit_obj.ClosetHit(payload, attr);
-			//printf("[%f, %f, %f]\n", payload.attenuation.x, payload.attenuation.y, payload.attenuation.z);
+			//printf("[%f, %f, %f]\n", payload.radiance.x, payload.radiance.y, payload.radiance.z);
 		}
 		else {
 			attr.hit_pos = payload.ray.origin + DEFAULT_RAY_TMAX * payload.ray.dir;
@@ -203,8 +202,6 @@ void PathTracer::PipelineLoop() {
 		params.normal_info_buffer = normal_info_buffer_;
 		params.render_target = render_target_gpu_handle_;
 		params.d_rng_states = d_rng_states_;
-		log_debug("params:[width: %d, height: %d,sky_tex_obj: %ld]", params.width, params.height, params.sky_tex_obj);
-		log_debug("camera:[width: %d, height: %d]", cma.width_, cma.height_);
 
 		dim3 threads_per_block_sample(16, 16);
 		dim3 num_blocks_sample(width_ / threads_per_block_sample.x, height_ / threads_per_block_sample.y);
@@ -224,6 +221,9 @@ void PathTracer::PipelineLoop() {
 		if (err != cudaSuccess)
 		{
 			log_error("Error occur with Mix: %s", cudaGetErrorString(err));
+		}
+		else {
+			log_info("Sample one pixel, cur_sample_idx_: %d", cma.cur_sample_idx_);
 		}
 
 		cudaMemcpy(output_buffer_.get(), output_buffer_gpu_handle_, params.width * params.height * 4, cudaMemcpyDeviceToHost);

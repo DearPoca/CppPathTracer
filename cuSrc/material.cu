@@ -33,6 +33,7 @@ __device__ void DiffuseHitShader(Material& self,
 	else {
 		payload.attenuation = make_float3(0.0, 0.0, 0.0);
 	}
+	payload.radiance = self.emit_intensity_ * self.kd_;
 	payload.hit_pos = position;
 }
 
@@ -58,6 +59,7 @@ __device__ void MirrorHitShader(Material& self,
 		payload.attenuation = make_float3(0.0, 0.0, 0.0);
 	}
 	payload.bounce_dir = wo;
+	payload.radiance = self.emit_intensity_ * self.kd_;
 	payload.hit_pos = position;
 }
 
@@ -92,6 +94,7 @@ __device__ void MetalHitShader(Material& self,
 	else {
 		payload.attenuation = self.GetKd(x, y);
 	}
+	payload.radiance = self.emit_intensity_ * self.kd_;
 	payload.hit_pos = position;
 }
 
@@ -135,6 +138,7 @@ __device__ void GlassHitShader(Material& self,
 		payload.bounce_dir = to_world(localRay, refracted);
 	}
 	payload.attenuation = self.GetKd(x, y);
+	payload.radiance = self.emit_intensity_ * self.kd_;
 	payload.hit_pos = position;
 }
 

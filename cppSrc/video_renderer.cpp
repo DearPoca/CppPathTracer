@@ -34,7 +34,7 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 		// 创建材质库
 		std::vector<Material*> materials = { new Material };
 		materials[0]->type_ = MaterialType::Diffuse;
-		materials[0]->kd_ = make_float3(0.95f, 0.96f, 0.70f);
+		materials[0]->kd_ = make_float3(0.95f, 0.95f, 0.95f);
 		for (int i = 1; i < 20; ++i) {
 			materials.push_back(new Material);
 			materials[i]->kd_ = create_random_float3();
@@ -64,7 +64,8 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 		// 创建物体库
 		Object* floor = new Object();
 		floor->material_ = *materials[0];
-		floor->type_ = PrimitiveType::Sphere;
+		floor->type_ = PrimitiveType::Platform;
+		floor->y_pos_ = 0.f;
 		floor->center_ = make_float3(0, -10000.f, 0);
 		floor->radius_ = 10000.f;
 		path_tracer_->AddObject(floor);

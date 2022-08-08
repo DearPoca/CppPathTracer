@@ -3,20 +3,21 @@
 #include <algorithm>
 #include <cstring>
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <cuda_runtime.h>
 #include <helper_functions.h>  
 #include <helper_cuda.h>
 
+#include "logger.hpp"
 #include "ray_tracing_math.hpp"
 #include "ray_tracing_common.h"
 
-static SceneBVH* bvh_cpu_root_handle;
+static std::vector<SceneBVH> world_bvh_cpu_array;
+static SceneBVHGPUHandle world_bvh_gpu_root;
 static std::vector<Object*> bvh_objs;
-static std::map<SceneBVH*, SceneBVH*> bvh_node_cpu_handle_to_gpu_handle;
-static std::map<Object*, SceneBVH*> object_to_bvh_node_cpu_handle;
-static std::map<SceneBVH*, Object*> bvh_node_cpu_handle_to_object;
-static std::map<SceneBVH*, SceneBVH*> bvh_node_pars;
+static std::unordered_map<Object*, int> object_to_bvh_node_cpu_handle;
+static std::unordered_map<int, int> bvh_node_pars;
 
 void SceneBVH::AddObject(Object* obj) {
 	static std::set<Object*> st;
@@ -27,21 +28,21 @@ void SceneBVH::AddObject(Object* obj) {
 	st.insert(obj);
 }
 
-SceneBVH* SceneBVH::Divide(std::vector<Object*>& objs, int l, int r) {
-	if (l >= r) return nullptr;
-	SceneBVH* ret = new SceneBVH();
+int SceneBVH::Divide(std::vector<Object*>& objs, int l, int r) {
+	if (l >= r) return -1;
+	int ret_idx = world_bvh_cpu_array.size();
+	world_bvh_cpu_array.push_back(SceneBVH());
 	float3 obj_l_AABB_min = objs[l]->GetAABBMin();
 	float3 obj_l_AABB_max = objs[l]->GetAABBMax();
 	if (l == r - 1) {
-		ret->left_son_ = nullptr;
-		ret->right_son_ = nullptr;
-		ret->AABB_min_ = obj_l_AABB_min;
-		ret->AABB_max_ = obj_l_AABB_max;
-		ret->is_object_ = true;
-		ret->obj_ = *objs[l];
-		object_to_bvh_node_cpu_handle[objs[l]] = ret;
-		bvh_node_cpu_handle_to_object[ret] = objs[l];
-		return ret;
+		world_bvh_cpu_array[ret_idx].left_son_ = -1;
+		world_bvh_cpu_array[ret_idx].right_son_ = -1;
+		world_bvh_cpu_array[ret_idx].AABB_min_ = obj_l_AABB_min;
+		world_bvh_cpu_array[ret_idx].AABB_max_ = obj_l_AABB_max;
+		world_bvh_cpu_array[ret_idx].is_object_ = true;
+		world_bvh_cpu_array[ret_idx].obj_ = *objs[l];
+		object_to_bvh_node_cpu_handle[objs[l]] = ret_idx;
+		return ret_idx;
 	}
 	float minx = obj_l_AABB_min.x;
 	float miny = obj_l_AABB_min.y;
@@ -78,50 +79,58 @@ SceneBVH* SceneBVH::Divide(std::vector<Object*>& objs, int l, int r) {
 			});
 	}
 	int mid = (l + r) / 2;
-	ret->left_son_ = Divide(objs, l, mid);
-	ret->right_son_ = Divide(objs, mid, r);
-	bvh_node_pars[ret->left_son_] = ret;
-	bvh_node_pars[ret->right_son_] = ret;
-	ret->AABB_min_ = make_float3(minx, miny, minz);
-	ret->AABB_max_ = make_float3(maxx, maxy, maxz);
-	ret->is_object_ = false;
-	return ret;
+	world_bvh_cpu_array[ret_idx].left_son_ = Divide(objs, l, mid);
+	world_bvh_cpu_array[ret_idx].right_son_ = Divide(objs, mid, r);
+	bvh_node_pars[world_bvh_cpu_array[ret_idx].left_son_] = ret_idx;
+	bvh_node_pars[world_bvh_cpu_array[ret_idx].right_son_] = ret_idx;
+	world_bvh_cpu_array[ret_idx].AABB_min_ = make_float3(minx, miny, minz);
+	world_bvh_cpu_array[ret_idx].AABB_max_ = make_float3(maxx, maxy, maxz);
+	world_bvh_cpu_array[ret_idx].is_object_ = false;
+	return ret_idx;
 }
 
-SceneBVH* SceneBVH::BuildBVHInCpu(std::vector<Object*>& objs) {
-	return Divide(objs, 0, objs.size());
+void SceneBVH::BuildBVHInCpu(std::vector<Object*>& objs) {
+	world_bvh_cpu_array.clear();
+	Divide(objs, 0, objs.size());
 }
 
-SceneBVH* SceneBVH::BuildBVHInGpu(SceneBVH* node_cpu_handle) {
-	if (node_cpu_handle == nullptr) return nullptr;
-	SceneBVH tmp;
-	memcpy(&tmp, node_cpu_handle, sizeof(SceneBVH));
-	tmp.left_son_ = BuildBVHInGpu(node_cpu_handle->left_son_);
-	tmp.right_son_ = BuildBVHInGpu(node_cpu_handle->right_son_);
+SceneBVHGPUHandle SceneBVH::BuildBVHInGpu() {
+	cudaError_t err;
 
-	SceneBVH* ret;
-	checkCudaErrors(cudaMalloc((void**)&ret, sizeof(SceneBVH)));
-	checkCudaErrors(cudaMemcpy((void*)ret, (void*)&tmp, sizeof(SceneBVH), cudaMemcpyHostToDevice));
-	bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle] = ret;
+	SceneBVHGPUHandle ret;
+
+	err = cudaMalloc((void**)&ret, world_bvh_cpu_array.size() * sizeof(SceneBVH));
+	if (err != cudaSuccess) {
+		log_error("cudaMalloc Failed: %s", cudaGetErrorString(err));
+	}
+
+	err = cudaMemcpy((void*)ret, (void*)world_bvh_cpu_array.data(), world_bvh_cpu_array.size() *
+		sizeof(SceneBVH), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		log_error("cudaMemcpy Failed: %s", cudaGetErrorString(err));
+	}
+	world_bvh_gpu_root = ret;
 	return ret;
 }
 
 SceneBVHGPUHandle SceneBVH::BuildBVH() {
-	bvh_cpu_root_handle = BuildBVHInCpu(bvh_objs);
-	bvh_node_pars[bvh_cpu_root_handle] = nullptr;
-	return (SceneBVHGPUHandle)BuildBVHInGpu(bvh_cpu_root_handle);
+	BuildBVHInCpu(bvh_objs);
+	bvh_node_pars[0] = -1;
+	return (SceneBVHGPUHandle)BuildBVHInGpu();
 }
 
-void SceneBVH::UpdateSceneBVH(SceneBVH* node_cpu_handle) {
-	if (node_cpu_handle == nullptr) return;
-	if (node_cpu_handle->is_object_) {
-		node_cpu_handle->AABB_max_ = node_cpu_handle->obj_.GetAABBMax();
-		node_cpu_handle->AABB_min_ = node_cpu_handle->obj_.GetAABBMin();
-		checkCudaErrors(cudaMemcpy((void*)bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle], (void*)node_cpu_handle, sizeof(SceneBVH), cudaMemcpyHostToDevice));
+void SceneBVH::UpdateSceneBVH(int node_idx) {
+	if (node_idx < 0) return;
+
+	if (world_bvh_cpu_array[node_idx].is_object_) {
+		world_bvh_cpu_array[node_idx].AABB_max_ = world_bvh_cpu_array[node_idx].obj_.GetAABBMax();
+		world_bvh_cpu_array[node_idx].AABB_min_ = world_bvh_cpu_array[node_idx].obj_.GetAABBMin();
 	}
 	else {
-#define UPDATE_AABB_FOR_CUR_NODE(target, axis, FUNC) node_cpu_handle->target.axis = \
-			FUNC(node_cpu_handle->left_son_->target.axis, node_cpu_handle->right_son_->target.axis);
+#define UPDATE_AABB_FOR_CUR_NODE(target, axis, FUNC) \
+			world_bvh_cpu_array[node_idx].target.axis = \
+			FUNC(world_bvh_cpu_array[world_bvh_cpu_array[node_idx].left_son_].target.axis, \
+			world_bvh_cpu_array[world_bvh_cpu_array[node_idx].right_son_].target.axis);
 
 		UPDATE_AABB_FOR_CUR_NODE(AABB_max_, x, MAX);
 		UPDATE_AABB_FOR_CUR_NODE(AABB_max_, y, MAX);
@@ -129,76 +138,69 @@ void SceneBVH::UpdateSceneBVH(SceneBVH* node_cpu_handle) {
 		UPDATE_AABB_FOR_CUR_NODE(AABB_min_, x, MIN);
 		UPDATE_AABB_FOR_CUR_NODE(AABB_min_, y, MIN);
 		UPDATE_AABB_FOR_CUR_NODE(AABB_min_, z, MIN);
-
-		SceneBVH tmp_host = *node_cpu_handle;
-		SceneBVH tmp_device;
-		SceneBVH* node_gpu_handle = bvh_node_cpu_handle_to_gpu_handle[node_cpu_handle];
-		checkCudaErrors(cudaMemcpy((void*)&tmp_device, (void*)node_gpu_handle, sizeof(SceneBVH), cudaMemcpyDeviceToHost));
-		tmp_host.left_son_ = tmp_device.right_son_;
-		tmp_host.right_son_ = tmp_device.right_son_;
-		checkCudaErrors(cudaMemcpy((void*)node_gpu_handle, (void*)&tmp_host, sizeof(SceneBVH), cudaMemcpyHostToDevice));
+	}
+	cudaError_t err = cudaMemcpy((void*)(world_bvh_gpu_root + node_idx),
+		(void*)(world_bvh_cpu_array.data() + node_idx),
+		sizeof(SceneBVH), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		log_error("%s", cudaGetErrorString(err));
 	}
 }
 
 void SceneBVH::UpdateObject(Object* obj) {
 	if (!object_to_bvh_node_cpu_handle.count(obj))return;
-	SceneBVH* cur_bvh_node_cpu_handle = object_to_bvh_node_cpu_handle[obj];
-	cur_bvh_node_cpu_handle->obj_ = *obj;
-	while (cur_bvh_node_cpu_handle != nullptr) {
-		UpdateSceneBVH(cur_bvh_node_cpu_handle);
-		cur_bvh_node_cpu_handle = bvh_node_pars[cur_bvh_node_cpu_handle];
+	int cur_bvh_idx = object_to_bvh_node_cpu_handle[obj];
+	world_bvh_cpu_array[cur_bvh_idx].obj_ = *obj;
+	while (cur_bvh_idx != -1) {
+		UpdateSceneBVH(cur_bvh_idx);
+		cur_bvh_idx = bvh_node_pars[cur_bvh_idx];
 	}
 }
 
 void SceneBVH::ReleaseBVH() {
-	for (auto p : bvh_node_cpu_handle_to_gpu_handle) {
-		cudaFree(p.second);
-		delete p.first;
-	}
+	cudaFree(world_bvh_gpu_root);
+	world_bvh_cpu_array.clear();
 	bvh_objs.clear();
-	bvh_cpu_root_handle = nullptr;
-	bvh_node_cpu_handle_to_gpu_handle.clear();
 	object_to_bvh_node_cpu_handle.clear();
-	bvh_node_cpu_handle_to_object.clear();
 	bvh_node_pars.clear();
 }
 
 __device__ bool SceneBVH::TraceRay(Ray ray, IntersectionAttributes& attr, Object& obj) {
-	SceneBVH* stack[512];
+	int stack[512];
 	int top = 0;
-	stack[top++] = this;
+	stack[top++] = 0;
 	bool ret = false;
 	while (top > 0) {
-		SceneBVH* node = stack[--top];
-		if (node == nullptr) continue;
-		if (node->is_object_) {
-			if (node->obj_.IntersectionTest(ray, attr)) {
-				obj = node->obj_;
+		int node = stack[--top];
+		if (node == -1) continue;
+		if (this[node].is_object_) {
+			if (this[node].obj_.IntersectionTest(ray, attr)) {
+				obj = this[node].obj_;
 				ret = true;
 			}
 		}
-		float local_tmin = -DEFAULT_RAY_TMAX, local_tmax = DEFAULT_RAY_TMAX;
+		float local_tmin = -DEFAULT_RAY_TMAX * 2, local_tmax = DEFAULT_RAY_TMAX * 2;
 		if (ray.dir.x != 0.f) {
-			float t0 = (node->AABB_min_.x - ray.origin.x) / ray.dir.x;
-			float t1 = (node->AABB_max_.x - ray.origin.x) / ray.dir.x;
+			float t0 = (this[node].AABB_min_.x - ray.origin.x) / ray.dir.x;
+			float t1 = (this[node].AABB_max_.x - ray.origin.x) / ray.dir.x;
 			local_tmin = MAX(local_tmin, MIN(t0, t1));
 			local_tmax = MIN(local_tmax, MAX(t0, t1));
 		}
 		if (ray.dir.y != 0.f) {
-			float t0 = (node->AABB_min_.y - ray.origin.y) / ray.dir.y;
-			float t1 = (node->AABB_max_.y - ray.origin.y) / ray.dir.y;
+			float t0 = (this[node].AABB_min_.y - ray.origin.y) / ray.dir.y;
+			float t1 = (this[node].AABB_max_.y - ray.origin.y) / ray.dir.y;
 			local_tmin = MAX(local_tmin, MIN(t0, t1));
 			local_tmax = MIN(local_tmax, MAX(t0, t1));
 		}
 		if (ray.dir.z != 0.f) {
-			float t0 = (node->AABB_min_.z - ray.origin.z) / ray.dir.z;
-			float t1 = (node->AABB_max_.z - ray.origin.z) / ray.dir.z;
+			float t0 = (this[node].AABB_min_.z - ray.origin.z) / ray.dir.z;
+			float t1 = (this[node].AABB_max_.z - ray.origin.z) / ray.dir.z;
 			local_tmin = MAX(local_tmin, MIN(t0, t1));
 			local_tmax = MIN(local_tmax, MAX(t0, t1));
 		}
 		if (local_tmin > local_tmax || local_tmin > ray.tmax || local_tmax < ray.tmin) continue;
-		stack[top++] = node->left_son_;
-		stack[top++] = node->right_son_;
+		stack[top++] = this[node].left_son_;
+		stack[top++] = this[node].right_son_;
 	}
 	return ret;
 }
