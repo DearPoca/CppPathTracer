@@ -120,65 +120,47 @@ void MotionalCamera::MoveEyeDown(float coefficient) {
 void MotionalCamera::RotateAroundUp(float dy) {
 	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	float3 Rx[3] = {
-		make_float3(1.f,0.f,0.f),
-		make_float3(0.f,cos(-dy * M_PI / 2),-sin(-dy * M_PI / 2)),
-		make_float3(0.f,sin(-dy * M_PI / 2),cos(-dy * M_PI / 2))
-	};
 	float3 w = normalize(look_at_ - origin_);
-	float3 d;
-	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
-	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
-	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
-	look_at_ = origin_ + normalize(d);
+	float3 left = normalize(cross(vup, w));
+	float3 up = normalize(cross(w, left));
+
+	look_at_ += dy * up;
+
+	look_at_ = origin_ + normalize(look_at_ - origin_);
 }
 
 void MotionalCamera::RotateAroundDown(float dy) {
 	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	float3 Rx[3] = {
-		make_float3(1.f,0.f,0.f),
-		make_float3(0.f,cos(dy * M_PI / 2),-sin(dy * M_PI / 2)),
-		make_float3(0.f,sin(dy * M_PI / 2),cos(dy * M_PI / 2))
-	};
 	float3 w = normalize(look_at_ - origin_);
-	float3 d;
-	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
-	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
-	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
-	look_at_ = origin_ + normalize(d);
+	float3 left = normalize(cross(vup, w));
+	float3 up = normalize(cross(w, left));
+
+	look_at_ -= dy * up;
+
+	look_at_ = origin_ + normalize(look_at_ - origin_);
 }
 
 void MotionalCamera::RotateAroundLeft(float dx) {
 	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	float3 Rx[3] = {
-		make_float3(cos(-dx * M_PI / 2),0.f,sin(-dx * M_PI / 2)),
-		make_float3(0.f,1.f,0.f),
-		make_float3(-sin(-dx * M_PI / 2),0.f,cos(-dx * M_PI / 2))
-	};
 	float3 w = normalize(look_at_ - origin_);
-	float3 d;
-	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
-	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
-	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
-	look_at_ = origin_ + normalize(d);
+	float3 left = normalize(cross(vup, w));
+
+	look_at_ += dx * left;
+
+	look_at_ = origin_ + normalize(look_at_ - origin_);
 }
 
 void MotionalCamera::RotateAroundRight(float dx) {
 	look_at_ = origin_ + normalize(look_at_ - origin_);
 
-	float3 Rx[3] = {
-		make_float3(cos(-dx * M_PI / 2),0.f,sin(-dx * M_PI / 2)),
-		make_float3(0.f,1.f,0.f),
-		make_float3(-sin(-dx * M_PI / 2),0.f,cos(-dx * M_PI / 2))
-	};
 	float3 w = normalize(look_at_ - origin_);
-	float3 d;
-	d.x = Rx[0].x * w.x + Rx[0].y * w.y + Rx[0].z * w.z;
-	d.y = Rx[1].x * w.x + Rx[1].y * w.y + Rx[1].z * w.z;
-	d.z = Rx[2].x * w.x + Rx[2].y * w.y + Rx[2].z * w.z;
-	look_at_ = origin_ + normalize(d);
+	float3 left = normalize(cross(vup, w));
+
+	look_at_ -= dx * left;
+
+	look_at_ = origin_ + normalize(look_at_ - origin_);
 }
 
 void MotionalCamera::ScaleFov(float d) {

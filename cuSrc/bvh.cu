@@ -139,12 +139,6 @@ void SceneBVH::UpdateSceneBVH(int node_idx) {
 		UPDATE_AABB_FOR_CUR_NODE(AABB_min_, y, MIN);
 		UPDATE_AABB_FOR_CUR_NODE(AABB_min_, z, MIN);
 	}
-	cudaError_t err = cudaMemcpy((void*)(world_bvh_gpu_root + node_idx),
-		(void*)(world_bvh_cpu_array.data() + node_idx),
-		sizeof(SceneBVH), cudaMemcpyHostToDevice);
-	if (err != cudaSuccess) {
-		log_error("%s", cudaGetErrorString(err));
-	}
 }
 
 void SceneBVH::UpdateObject(Object* obj) {
@@ -154,6 +148,11 @@ void SceneBVH::UpdateObject(Object* obj) {
 	while (cur_bvh_idx != -1) {
 		UpdateSceneBVH(cur_bvh_idx);
 		cur_bvh_idx = bvh_node_pars[cur_bvh_idx];
+	}
+	cudaError_t err = cudaMemcpy((void*)world_bvh_gpu_root, (void*)world_bvh_cpu_array.data(), world_bvh_cpu_array.size() *
+		sizeof(SceneBVH), cudaMemcpyHostToDevice);
+	if (err != cudaSuccess) {
+		log_error("cudaMemcpy Failed: %s", cudaGetErrorString(err));
 	}
 }
 

@@ -1,6 +1,6 @@
 # CUDAPathTracer
 
-一个由C++与CUDA实现的路径追踪渲染器, 使用opencv进行滤波降噪, 使用ffmpeg进行编码录制。
+一个由C++与CUDA实现的路径追踪渲染器, 使用opencv进行读取图片获取纹理, 使用Windows窗口显示。
 
 材质:
 ```
@@ -17,16 +17,12 @@ Platform: 垂直于y轴的平面
 Cylinder: 圆柱体
 ```
 
-需要根据系统环境修改以下代码
+环境
 ```
-CMakeLists.txt:
-include_directories(/usr/local/cuda-11.5/include)
+Windows Visual Studio 2019, 使用前需要解压 lib\opencv_world460d.zip 文件
 ```
 
 效果:
 
 ![image](https://user-images.githubusercontent.com/44687653/148175016-21c0daba-3003-4393-8598-44c3be3cc507.png)
-<<<<<<< HEAD
 
-=======
->>>>>>> b92e1c49e6a16fdfd80b67c2aecfbd2e3418e858

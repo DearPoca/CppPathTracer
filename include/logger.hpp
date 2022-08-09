@@ -17,7 +17,7 @@ enum {
 	Trace
 };
 
-#define MAX_LOGGER_BUF 4096
+#define MAX_LOGGER_BUF 512
 #define log_error(fmt, ...) logger.Log(Error, __FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__) 
 #define log_warning(fmt, ...) logger.Log(Warning, __FILE__, __LINE__, __FUNCTION__  , fmt, ##__VA_ARGS__) 
 #define log_info(fmt, ...) logger.Log(Info, __FILE__, __LINE__, __FUNCTION__  , fmt, ##__VA_ARGS__) 
@@ -27,7 +27,8 @@ enum {
 class Logger {
 
 public:
-	Logger(std::string _path = "./logs/CUDAPathTracer.log") :path(_path) {
+	inline Logger(std::string _path = "./logs/CUDAPathTracer.log") :path(_path) {
+		memset(&timer, 0, sizeof(Timer));
 		ofs.open(_path, std::ios::out | std::ios::app);
 		assert(ofs.is_open());
 	};

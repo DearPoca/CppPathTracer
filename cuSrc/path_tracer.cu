@@ -186,9 +186,15 @@ __global__ void Denoising(
 	int width = blockDim.x * gridDim.x;
 	int height = blockDim.y * gridDim.y;
 
-	int dx[3] = { -1,0,1 };
-	int dy[3] = { -1,0,1 };
-	float kernel[3][3] = { {1.f,2.f,1.f},{2.f,8.f,2.f},{1.f,2.f,1.f} };
+	int dx[5] = { -2, -1, 0, 1, 2 };
+	int dy[5] = { -2, -1, 0, 1, 2 };
+	float kernel[5][5] = {
+		{1.f,  4.f,  7.f,  4.f, 1.f},
+		{4.f, 16.f, 26.f, 16.f, 4.f},
+		{7.f, 26.f, 41.f, 26.f, 7.f},
+		{4.f, 16.f, 26.f, 16.f, 4.f},
+		{1.f,  4.f,  7.f,  4.f, 1.f}
+	};
 
 	int offset = y * width + x;
 
@@ -201,8 +207,8 @@ __global__ void Denoising(
 	float c_w;
 	float n_w;
 	float p_w;
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; ++j) {
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; ++j) {
 			int u = x + dx[i];
 			int v = y + dy[j];
 			int cur_off = v * width + u;
@@ -258,8 +264,6 @@ void PathTracer::PipelineLoop() {
 		MotionalCamera cma = camera_->GetCopy();
 		InitBuffers(cma);
 		PathTracerParams params;
-		/*params.width = width_;
-		params.height = height_;*/
 		params.sky_tex_obj = sky_tex_obj_;
 		params.bvh_root = scene_bvh_gpu_handle_;
 		params.max_recursion_depth = max_recursion_depth_;

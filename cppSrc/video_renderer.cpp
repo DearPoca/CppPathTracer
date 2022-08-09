@@ -201,8 +201,8 @@ void VideoRenderer::OnMouseMove(WPARAM btnState, int x, int y) {
 		// Rotate camera.
 		auto camera = path_tracer_->GetCamera();
 		camera->Lock();
-		camera->RotateAroundUp(dy);
-		camera->RotateAroundLeft(dx);
+		camera->RotateAroundDown(dy);
+		camera->RotateAroundRight(dx);
 		camera->Refresh();
 		camera->Unlock();
 	}
