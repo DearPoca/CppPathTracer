@@ -10,7 +10,7 @@
 
 __device__ float3 Material::GetKd(float x, float y) {
 	if (have_tex_ == true) {
-		return make_float3(GetTexture2D(tex_, x, y));
+		return make_float3(PocaTextureUtils::GetTexture2D(tex_, x, y));
 	}
 	else {
 		return kd_;
@@ -160,14 +160,4 @@ __device__ void Material::EvalAttenuationAndCreateRay(RayPayload& payload, float
 	default:
 		DiffuseHitShader(*this, payload, position, normal, in_ray_dir, x, y);
 	}
-}
-
-__COMMON_GPU_CPU__ Material::Material() {
-	type_ = MaterialType::Diffuse;
-	have_tex_ = false;
-	kd_ = make_float3(0.9, 0.9, 0.9);
-	refractive_index_ = 0.f;
-	emit_intensity_ = 0.f;
-	smoothness_ = 0.f;
-	reflectivity_ = 0.f;
 }

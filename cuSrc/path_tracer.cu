@@ -12,7 +12,6 @@
 #define ARGB_CHANNELS 4
 
 struct PathTracerParams {
-	int width, height;
 	cudaTextureObject_t sky_tex_obj;
 
 	SceneBVHGPUHandle bvh_root;
@@ -45,7 +44,7 @@ __global__ void InitCuRand(curandState* d_rng_states, unsigned long long clock, 
 void PathTracer::InitBuffers(MotionalCamera& cam) {
 	cudaError_t err;
 	if (!(cam.width_ == width_ && cam.height_ == height_)) {
-		sky_tex_obj_ = AddTexByFile("textures\\sky.png");
+		sky_tex_obj_ = PocaTextureUtils::AddTexByFile("textures\\sky.png");
 		width_ = cam.width_;
 		height_ = cam.height_;
 
@@ -65,7 +64,7 @@ void PathTracer::InitBuffers(MotionalCamera& cam) {
 				log_error("Error occur with InitGpuState: %s", cudaGetErrorString(err));
 			}
 
-			err = cudaMalloc((void**)&normal_info_buffer_, height_ * width_ * sizeof(float3));
+			err = cudaMalloc((void**)&normal_info_buffer_, height_ * width_ * sizeof(float4));
 			if (err != cudaSuccess)
 			{
 				log_error("Error occur with InitGpuState: %s", cudaGetErrorString(err));
@@ -73,7 +72,15 @@ void PathTracer::InitBuffers(MotionalCamera& cam) {
 		}
 
 		{ // render target
-			err = cudaMalloc((void**)(&render_target_gpu_handle_), height_ * width_ * sizeof(float3));
+			err = cudaMalloc((void**)(&render_target_gpu_handle_), height_ * width_ * sizeof(float4));
+			if (err != cudaSuccess)
+			{
+				log_error("Error occur with InitGpuState: %s", cudaGetErrorString(err));
+			}
+		}
+
+		{ // denoising temp buffer
+			err = cudaMalloc((void**)(&denoising_buffer_gpu_handle_), height_ * width_ * sizeof(float3));
 			if (err != cudaSuccess)
 			{
 				log_error("Error occur with InitGpuState: %s", cudaGetErrorString(err));
@@ -110,14 +117,15 @@ void PathTracer::InitBuffers(MotionalCamera& cam) {
 __device__ void Miss(RayPayload& payload) {
 	float3 d = normalize(payload.ray.dir);
 	float v = asin(d.z) / M_PI + 0.5, u = atan(d.y / d.x) / 2 / M_PI;
-	payload.radiance = make_float3(GetTexture2D(payload.sky_tex_obj, u, v));
+	payload.radiance = make_float3(PocaTextureUtils::GetTexture2D(payload.sky_tex_obj, u, v));
 	payload.recursion_depth = MAX_RECURSION_DEPTH_SET;
 }
 
 __global__ void SamplePixel(PathTracerParams params) {
-	uint x = blockIdx.x * blockDim.x + threadIdx.x;
-	uint y = blockIdx.y * blockDim.y + threadIdx.y;
-	uint offset = y * params.width + x;
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int offset = y * blockDim.x * gridDim.x + x;
 	float3 radiance = make_float3(0.f);
 	float3 normals = make_float3(0.f);
 	float depth = 0.0f;
@@ -166,34 +174,92 @@ __global__ void SamplePixel(PathTracerParams params) {
 	params.normal_info_buffer[offset] = normals;
 }
 
+__global__ void Denoising(
+	float3* rt_buffer,
+	float3* n_buffer,
+	float* d_buffer,
+	float3* dst_buffer,
+	float stepwidth
+) {
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int width = blockDim.x * gridDim.x;
+	int height = blockDim.y * gridDim.y;
+
+	int dx[3] = { -1,0,1 };
+	int dy[3] = { -1,0,1 };
+	float kernel[3][3] = { {1.f,2.f,1.f},{2.f,8.f,2.f},{1.f,2.f,1.f} };
+
+	int offset = y * width + x;
+
+	float3 sum = make_float3(0.f);
+	float2 step = make_float2(1.f / width, 1.f / height); // resolution
+	float3 cval = rt_buffer[offset];
+	float3 nval = n_buffer[offset];
+	float pval = d_buffer[offset];
+	float cum_w = 0.0;
+	float c_w;
+	float n_w;
+	float p_w;
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; ++j) {
+			int u = x + dx[i];
+			int v = y + dy[j];
+			int cur_off = v * width + u;
+			float3 ctmp;
+			if (cur_off < 0 || cur_off >= width * height) {
+				c_w = n_w = p_w = 0;
+				ctmp = make_float3(0.f);
+			}
+			else {
+				ctmp = rt_buffer[cur_off];
+				float3 t = cval - ctmp;
+				float dist2 = dot(t, t);
+				c_w = min(exp(-(dist2) / M_PI), 1.0);
+				float3 ntmp = n_buffer[cur_off];
+				t = nval - ntmp;
+				dist2 = max(dot(t, t), 0.0);
+				n_w = min(exp(-(dist2) / M_PI), 1.0);
+				float ptmp = d_buffer[cur_off];
+				dist2 = (pval - ptmp) * (pval - ptmp);
+				p_w = min(exp(-(dist2) / M_PI), 1.0);
+			}
+			float weight = c_w * n_w * p_w;
+			sum += weight * kernel[i][j] * ctmp;
+			cum_w += weight * kernel[i][j];
+		}
+	}
+	dst_buffer[offset] = sum / cum_w;
+}
+
 __global__ void Mix(
 	float3* src_gpu_handle_,
 	float3* mix_buffer_gpu_handle_,
 	uint8_t* dst_gpu_handle_,
-	int cur_sample_idx,
-	int width,
-	int height) {
+	int cur_sample_idx
+) {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	for (int y = 0; y < height; ++y) {
-		int offset = y * width + x;
-		mix_buffer_gpu_handle_[offset] = lerp(mix_buffer_gpu_handle_[offset], clamp(src_gpu_handle_[offset], 0.f, 1.f), 1.f / float(cur_sample_idx));
-		dst_gpu_handle_[offset * 4 + 0] = 255.99f * mix_buffer_gpu_handle_[offset].z;
-		dst_gpu_handle_[offset * 4 + 1] = 255.99f * mix_buffer_gpu_handle_[offset].y;
-		dst_gpu_handle_[offset * 4 + 2] = 255.99f * mix_buffer_gpu_handle_[offset].x;
-	}
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int offset = y * blockDim.x * gridDim.x + x;
+	mix_buffer_gpu_handle_[offset] = lerp(mix_buffer_gpu_handle_[offset], clamp(src_gpu_handle_[offset], 0.f, 1.f), 1.f / float(cur_sample_idx));
+	dst_gpu_handle_[offset * 4 + 0] = 255.99f * mix_buffer_gpu_handle_[offset].z;
+	dst_gpu_handle_[offset * 4 + 1] = 255.99f * mix_buffer_gpu_handle_[offset].y;
+	dst_gpu_handle_[offset * 4 + 2] = 255.99f * mix_buffer_gpu_handle_[offset].x;
 }
 
 void PathTracer::PipelineLoop() {
 	cudaError_t err;
+	InitBuffers(camera_->GetCopy());
 	while (running_.load()) {
 		sem.Wait();
+		long long start = Timer::GetMillisecondsTimeStamp();
 		DispatchRayArgs task = tasks_queue_.front();
 		tasks_queue_.pop_front();
 		MotionalCamera cma = camera_->GetCopy();
 		InitBuffers(cma);
 		PathTracerParams params;
-		params.width = width_;
-		params.height = height_;
+		/*params.width = width_;
+		params.height = height_;*/
 		params.sky_tex_obj = sky_tex_obj_;
 		params.bvh_root = scene_bvh_gpu_handle_;
 		params.max_recursion_depth = max_recursion_depth_;
@@ -203,31 +269,35 @@ void PathTracer::PipelineLoop() {
 		params.render_target = render_target_gpu_handle_;
 		params.d_rng_states = d_rng_states_;
 
-		dim3 threads_per_block_sample(16, 16);
-		dim3 num_blocks_sample(width_ / threads_per_block_sample.x, height_ / threads_per_block_sample.y);
-		SamplePixel << < num_blocks_sample, threads_per_block_sample >> > (params);
+		dim3 threads_per_block(16, 16);
+		dim3 num_blocks(width_ / threads_per_block.x, height_ / threads_per_block.y);
+		SamplePixel << < num_blocks, threads_per_block >> > (params);
 		err = cudaDeviceSynchronize();
 		if (err != cudaSuccess)
 		{
 			log_error("Error occur with SamplePixel: %s", cudaGetErrorString(err));
 		}
 
-		dim3 threads_per_block_mix(16);
-		dim3 num_blocks_mix(width_ / threads_per_block_mix.x);
-		Mix << <num_blocks_mix, threads_per_block_mix >> > (render_target_gpu_handle_,
-			mix_buffer_gpu_handle_, output_buffer_gpu_handle_, cma.cur_sample_idx_, params.width, params.height);
+		Denoising << <num_blocks, threads_per_block >> > (render_target_gpu_handle_, normal_info_buffer_, depth_info_buffer_, denoising_buffer_gpu_handle_, 1.f);
+		err = cudaDeviceSynchronize();
+		if (err != cudaSuccess)
+		{
+			log_error("Error occur with Denoising: %s", cudaGetErrorString(err));
+		}
 
+		Mix << <num_blocks, threads_per_block >> > (denoising_buffer_gpu_handle_,
+			mix_buffer_gpu_handle_, output_buffer_gpu_handle_, cma.cur_sample_idx_);
 		err = cudaDeviceSynchronize();
 		if (err != cudaSuccess)
 		{
 			log_error("Error occur with Mix: %s", cudaGetErrorString(err));
 		}
 		else {
-			log_info("Sample one pixel, cur_sample_idx_: %d", cma.cur_sample_idx_);
+			log_info("Sample one pixel, cur sample idx: %d, used: %ldms", cma.cur_sample_idx_, Timer::GetMillisecondsTimeStamp() - start);
 		}
 
-		cudaMemcpy(output_buffer_.get(), output_buffer_gpu_handle_, params.width * params.height * 4, cudaMemcpyDeviceToHost);
-		task.Callback(output_buffer_.get(), params.width, params.height, task.cbParam);
+		cudaMemcpy(output_buffer_.get(), output_buffer_gpu_handle_, width_ * height_ * 4, cudaMemcpyDeviceToHost);
+		task.Callback(output_buffer_.get(), width_, height_, task.cbParam);
 	}
 }
 
@@ -236,7 +306,6 @@ void PathTracer::InitPipeline() {
 		scene_bvh_.reset(new SceneBVH);
 	}
 	scene_bvh_gpu_handle_ = scene_bvh_->BuildBVH();
-	InitBuffers(camera_->GetCopy());
 	std::thread(&PathTracer::PipelineLoop, this).detach();
 }
 

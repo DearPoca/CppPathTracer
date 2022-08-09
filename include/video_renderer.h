@@ -15,6 +15,7 @@ public:
 	void unlock();
 
 	void OnRender();
+	void Create();
 
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);

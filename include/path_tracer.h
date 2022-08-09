@@ -30,6 +30,7 @@ private:
 	float* depth_info_buffer_;
 	float3* normal_info_buffer_;
 	float3* render_target_gpu_handle_;
+	float3* denoising_buffer_gpu_handle_;
 	float3* mix_buffer_gpu_handle_;
 	curandState* d_rng_states_;
 
@@ -39,7 +40,7 @@ private:
 	std::deque<DispatchRayArgs> tasks_queue_;
 	Semaphore sem;
 
-	uint8_t max_recursion_depth_ = 12;
+	uint8_t max_recursion_depth_ = 8;
 	int width_ = 0, height_ = 0;
 	std::shared_ptr<MotionalCamera> camera_;
 	cudaTextureObject_t sky_tex_obj_;

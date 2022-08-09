@@ -168,9 +168,3 @@ float3 Object::GetAABBMin() {
 	}
 	return AABB_min;
 }
-
-__device__ __host__ Object::Object() {
-	type_ = PrimitiveType::Sphere;
-	center_ = make_float3(0.f);
-	radius_ = 0.f;
-}

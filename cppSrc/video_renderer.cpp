@@ -23,20 +23,29 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 	key_down_pressed_ = 0;
 	key_front_pressed_ = 0;
 	key_back_pressed_ = 0;
+}
 
+VideoRenderer::~VideoRenderer() {
+
+}
+
+void VideoRenderer::Create() {
 	path_tracer_.reset(new PathTracer);
 	path_tracer_->SetCamera(std::shared_ptr<MotionalCamera>(
 		new MotionalCamera(
-			width, height,
-			make_float3(13.f, 103.f, 13.f),
+			bmi_.bmiHeader.biWidth, -bmi_.bmiHeader.biHeight,
+			make_float3(130.f, 103.f, 130.f),
 			make_float3(0.f, 0.f, 0.f))));
 	{
 		// 创建材质库
 		std::vector<Material*> materials = { new Material };
+		memset(materials[0], 0, sizeof(Material));
 		materials[0]->type_ = MaterialType::Diffuse;
 		materials[0]->kd_ = make_float3(0.95f, 0.95f, 0.95f);
+		materials[0]->have_tex_ = false;
 		for (int i = 1; i < 20; ++i) {
 			materials.push_back(new Material);
+			memset(materials[i], 0, sizeof(Material));
 			materials[i]->kd_ = create_random_float3();
 			int rnd = int(random() * 2048) % MaterialType::Count;
 			switch (rnd) {
@@ -63,6 +72,7 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 
 		// 创建物体库
 		Object* floor = new Object();
+		memset(floor, 0, sizeof(Object));
 		floor->material_ = *materials[0];
 		floor->type_ = PrimitiveType::Platform;
 		floor->y_pos_ = 0.f;
@@ -72,6 +82,7 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 
 		for (int i = -550; i < 550; i += 15) {
 			Object* obj = new Object();
+			memset(obj, 0, sizeof(Object));
 			int rnd = int(random() * 2048) % 2;
 			if (rnd == 0) {
 				obj->type_ = PrimitiveType::Sphere;
@@ -106,10 +117,6 @@ VideoRenderer::VideoRenderer(HWND wnd, int width, int height) {
 		}
 	}
 	path_tracer_->InitPipeline();
-}
-
-VideoRenderer::~VideoRenderer() {
-
 }
 
 void VideoRenderer::lock() {

@@ -11,7 +11,7 @@
 
 #include "logger.hpp"
 
-cudaTextureObject_t AddTexByFile(std::string file_path, cudaTextureAddressMode addr_mode, cudaTextureFilterMode filter_mode) {
+cudaTextureObject_t PocaTextureUtils::AddTexByFile(std::string file_path, cudaTextureAddressMode addr_mode, cudaTextureFilterMode filter_mode) {
 	cv::Mat src = cv::imread(file_path);
 	cv::Mat dst;
 	cv::cvtColor(src, dst, CV_BGR2RGBA);
@@ -61,7 +61,11 @@ cudaTextureObject_t AddTexByFile(std::string file_path, cudaTextureAddressMode a
 	return tex_object;
 }
 
-__device__ float4 GetTexture2D(cudaTextureObject_t tex_obj, float u, float v) {
+void PocaTextureUtils::DestroyTexture(cudaTextureObject_t tex) {
+	cudaDestroyTextureObject(tex);
+}
+
+__device__ float4 PocaTextureUtils::GetTexture2D(cudaTextureObject_t tex_obj, float u, float v) {
 	float4 tex = tex2D<float4>(tex_obj, u, v);
 	return tex;
 }

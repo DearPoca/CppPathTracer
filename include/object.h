@@ -22,8 +22,6 @@ public:
 	__device__ bool IntersectionTest(Ray& ray, IntersectionAttributes& attr);
 	__device__ void ClosetHit(RayPayload& payload, IntersectionAttributes& attr);
 
-	__device__ __host__ Object();
-
 	PrimitiveType::Enum type_;
 	Material material_;
 

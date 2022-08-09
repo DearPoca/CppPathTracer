@@ -28,8 +28,6 @@ public:
 	float smoothness_;
 	float reflectivity_;
 
-	__COMMON_GPU_CPU__ Material();
-
 	__device__ void EvalAttenuationAndCreateRay(RayPayload& payload, float3 position, float3 normal,
 		float3 in_ray_dir, float x = 0.f, float y = 0.f);
 

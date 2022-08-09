@@ -159,6 +159,7 @@ void MainWnd::MessageBox(const char* caption, const char* text, bool is_error) {
 
 void MainWnd::OnInit() {
 	renderer_.reset(new VideoRenderer(wnd_));
+	renderer_->Create();
 }
 
 void MainWnd::OnPaint() {

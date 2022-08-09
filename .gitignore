@@ -5,3 +5,4 @@
 /.vs
 /x64
 /lib/opencv_world460d.dll
+/logs
